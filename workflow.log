@@ -1,8 +1,3 @@
-[2026-06-18 01:10:00+08:00]
-Touched files: outputs/workflow-error-2026-06-15.md; workflow.log; outputs/4331-home-static-after-compress.png
-Progress or issue: Re-ranked the homepage first-screen gap on the stable static surface. The recent simulated trend is now visible, but it is still partially cut by the bottom navigation, so the first-screen platform shell remains incomplete.
-Notes or risks: The next UI edit should only reclaim vertical breathing room for the full trend block above the bottom navigation.
-
 [2026-06-18 01:18:00+08:00]
 Touched files: outputs/workflow-error-2026-06-15.md; workflow.log; outputs/4331-home-static-after-trim.png
 Progress or issue: The homepage first screen improved again, but the recent trend card is still slightly clipped by the bottom navigation. One more vertical trim is required before the first screen can be considered clean.
@@ -147,3 +142,8 @@ Notes or risks: This completes the current visible alignment pass across home, c
 Touched files: app/freshsalt_surface/lib/features/capture/capture_page.dart; app/freshsalt_surface/test/app_flow_test.dart; app/freshsalt_surface/test/widget_test.dart; app/freshsalt_surface/android/gradle.properties; app/freshsalt_surface/pubspec.yaml; app/freshsalt_surface/lib/theme/app_theme.dart; .gitignore; app/freshsalt_surface/android/.gitignore; outputs/workflow-error-2026-06-15.md; workflow.log
 Progress or issue: Completed Android readiness review and fixed the direct capture prediction-to-save path by reading orchestrator results from the `results` payload and decoding JSON maps back into `FeatureVector` and `PredictionResult`. Realigned stale widget assertions with the accepted v2 platform labels and removed local Microsoft YaHei TTC font dependency before public GitHub publishing.
 Notes or risks: Verification passed with `flutter analyze`, `flutter test` (50 tests), and `flutter build apk --debug` through an ASCII `subst X:` path. Direct APK build from the Chinese workspace path still hits Flutter shader write failure; no Android device/emulator was connected, so real-device `flutter run -d android` was not performed.
+
+[2026-06-20 16:45:00+08:00]
+Touched files: streamlit_app.py; requirements.txt; README.md; .gitignore; workflow.log
+Progress or issue: Added the missing root Streamlit Cloud entrypoint and dependency file so the deployment form can use `streamlit_app.py` as the main file path. Updated README with the exact Streamlit settings and preserved the Flutter Android app as the primary project body.
+Notes or risks: The Streamlit page is only a deployment display shell, not a replacement for the Android Flutter prototype or proof of real experiment results.

@@ -22,6 +22,8 @@ outputs/*
 !outputs/
 !outputs/workflow-error-2026-06-15.md
 outputs/**/*.tmp
+__pycache__/
+**/__pycache__/
 
 # External reference material not part of FreshSalt Surface source
 repo_reference/
