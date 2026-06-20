@@ -1,0 +1,36 @@
+# Local build/cache outputs
+**/build/
+**/.dart_tool/
+**/.gradle/
+**/.idea/
+**/*.iml
+
+# Local machine configuration and secrets
+**/local.properties
+**/key.properties
+**/*.keystore
+**/*.jks
+**/*.env
+**/*.pem
+**/*.key
+**/*.p12
+
+# Runtime logs and generated preview profiles
+**/*.log
+!workflow.log
+outputs/*
+!outputs/
+!outputs/workflow-error-2026-06-15.md
+outputs/**/*.tmp
+
+# External reference material not part of FreshSalt Surface source
+repo_reference/
+
+# Root-level duplicate source copies; canonical copies live under docs/source/
+/FreshSalt_Surface_APP平台方案与点击式模拟验证规划_2026-06-12.docx
+/FreshSalt_Surface_APP平台方案与点击式模拟验证规划_2026-06-12.txt
+/FreshSalt_Surface_APP框架决策树_输入交互模型输出_2026-06-13.md
+/大学物理竞赛-app.txt
+
+# Locally copied proprietary/system fonts
+app/freshsalt_surface/assets/fonts/*.ttc

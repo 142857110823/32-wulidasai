@@ -1,0 +1,149 @@
+[2026-06-18 01:10:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log; outputs/4331-home-static-after-compress.png
+Progress or issue: Re-ranked the homepage first-screen gap on the stable static surface. The recent simulated trend is now visible, but it is still partially cut by the bottom navigation, so the first-screen platform shell remains incomplete.
+Notes or risks: The next UI edit should only reclaim vertical breathing room for the full trend block above the bottom navigation.
+
+[2026-06-18 01:18:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log; outputs/4331-home-static-after-trim.png
+Progress or issue: The homepage first screen improved again, but the recent trend card is still slightly clipped by the bottom navigation. One more vertical trim is required before the first screen can be considered clean.
+Notes or risks: Stay on the same single UI target and avoid broadening the task again.
+
+[2026-06-18 01:29:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log; outputs/4331-home-static-final-firstscreen.png
+Progress or issue: The homepage first screen is now near the intended platform shell on the stable static surface, with task, entry, state, and trend all visible together. A slight overlap with the bottom navigation still remains, so the screen is improved but not fully clean.
+Notes or risks: UI acceptance remains incomplete, though the remaining homepage issue is now a narrow visible edge case rather than a structural platform-shell gap.
+
+[2026-06-18 01:36:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log; outputs/4331-home-static-final-firstscreen.png
+Progress or issue: Tightened the homepage issue boundary again. The first screen is structurally aligned now, and the remaining gap is a narrow vertical overlap edge case rather than a platform-shell deficiency.
+Notes or risks: Keep the next edit homepage-only and purely vertical; avoid reopening structural layout changes.
+
+[2026-06-18 01:48:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log; outputs/4331-home-static-postfinaltrim.png
+Progress or issue: Recorded the latest homepage first-screen evidence after the final vertical trim. Task, entry, state, and trend now fit together more cleanly, leaving only a narrow visual-tightness issue rather than a structural first-screen gap.
+Notes or risks: UI acceptance remains incomplete overall, but the homepage issue is now close to final polish territory instead of a platform-shell defect.
+
+[2026-06-18 01:56:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log; outputs/4331-home-static-microtrim.png
+Progress or issue: Closed out the homepage first-screen micro-trim on the stable static surface. Task, entry, state, and trend now read together as a single platform shell and the bottom-navigation overlap is no longer visually dominant.
+Notes or risks: The remaining work, if any, is now polish-level cohesion rather than a structural homepage problem.
+
+[2026-06-18 12:02:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Recorded two instruction-artifact blockers before documentation output. `Agent.md` is missing from the workspace, and the requested merged filename `AGENTS.` is not yet verified as a stable Windows path target.
+Notes or risks: The merged rules artifact will need an explicit fallback filename check after writing. No business code was modified.
+
+[2026-06-18 12:14:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Rechecked the stable 4331 acceptance surface against the three-core goal. The result page remains visibly rendered on `#/result`, but the homepage at `/` now renders as a blank white surface in the in-app browser despite HTTP 200 on both routes.
+Notes or risks: This strengthens the negative UI conclusion. Current browser-visible evidence is mixed rather than cleanly positive, so core requirement 3 remains unmet.
+
+[2026-06-18 12:18:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Strengthened the homepage regression finding with runtime-browser evidence. On the same 4331 session, the homepage returns an empty DOM snapshot while the result route returns a non-empty DOM snapshot and a visible result detail surface.
+Notes or risks: This rules out a screenshot-only misread and makes the current UI mismatch more specific: result rendering is alive, but homepage rendering is not currently evidenced as alive on the active acceptance surface.
+
+[2026-06-18 12:22:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Tightened the homepage finding again with a fresh-tab browser recheck. In a newly created tab on the same 4331 surface, both homepage and result page render visibly, which means the earlier homepage blank state is session-sensitive rather than a permanent route-level blank failure.
+Notes or risks: UI requirement 3 still remains negative because homepage acceptance evidence is unstable across browser sessions. The visible result is stronger, but the overall homepage proof is not yet stable enough for final acceptance.
+
+[2026-06-18 12:26:00+08:00]
+Touched files: workflow.log
+Progress or issue: Re-ranked the homepage conclusion using the latest visible homepage screenshot against the baseline intent. The first screen now visibly contains workbench structure, task entry, demo mode state, and recent simulated trend, so the remaining UI gap is no longer first-screen absence but acceptance stability plus incomplete proof of stronger measurement-flow semantics.
+Notes or risks: Core requirement 3 remains unmet. The homepage has moved back into visible-but-not-final territory rather than blank-page territory.
+
+[2026-06-18 12:30:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Rechecked the capture main flow against the baseline's measurement semantics. The capture page is visibly rendered as a compatibility/stage-navigation shell, while the quality-control page on the same fresh browser pass rendered blank again.
+Notes or risks: This keeps core requirement 3 negative even when homepage and result are visible. The current browser proof still does not establish a stable measurement-first capture workflow with camera-preview / ROI / gray-card semantics.
+
+[2026-06-18 12:34:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Strengthened the browser-visible main-flow failure. In a fresh tab, the homepage fell back to blank again, and the visible CTA path still did not advance into the quality-control route. The capture page CTA `进入当前阶段页面` also left the route at `#/capture`.
+Notes or risks: Core requirement 3 remains negative on stronger click-path evidence. The issue is no longer only visual semantics; the browser-visible main flow is not currently proven to advance stage-by-stage.
+
+[2026-06-18 13:55:00+08:00]
+Touched files: outputs/{capture-home-ui-2026-06-18.html,capture-home-ui-2026-06-18.png,capture-camera-ui-2026-06-18.html,capture-camera-ui-2026-06-18.png,capture-import-confirm-ui-2026-06-18.html,capture-import-confirm-ui-2026-06-18.png,workflow-error-2026-06-15.md}; workflow.log
+Progress or issue: Produced three measurement-first capture module UI mockups covering capture entry, live camera capture, and imported-image confirmation. The visuals prioritize camera preview, gray-card semantics, ROI framing, and the two requested entry actions: PNG/JPG import and permission-gated camera capture.
+Notes or risks: Direct v3 board PNG references were not available from the inspected workspace path, and external gpt-image-2 generation was blocked by provider-side 503 capacity errors. These outputs are therefore local high-fidelity mockups derived from the baseline text documents and the user-confirmed direction, pending visual confirmation.
+
+[2026-06-18 13:00:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Narrowed the bottom-navigation bug to a structural shell issue. The bottom bar is owned by the home page, while several other primary modules still render as independent top-level scaffolds.
+Notes or risks: No code was changed yet. The safest fix path is to move the five-tab navigation into a shared shell instead of patching each page separately.
+
+[2026-06-18 22:40:00+08:00]
+Touched files: outputs/{capture-home-ui-2026-06-18.html,capture-camera-ui-2026-06-18.html,capture-import-confirm-ui-2026-06-18.html,capture-home-ui-2026-06-18-v2.png,capture-camera-ui-2026-06-18-v2.png,capture-import-confirm-ui-2026-06-18-v2.png,capture_mockups_ascii/*}; workflow.log
+Progress or issue: Reworked the three capture UI pictures after inspecting the existing app screenshots and theme. The new drafts now follow the current FreshSalt Surface visual language: light scaffold, pale green hero panels, white rounded cards with thin outlines, teal primary action, soft blue/purple secondary actions, and bottom navigation matching the app surface.
+Notes or risks: These are still design mockup images, not Flutter implementation. The earlier dark-lab direction is superseded by the v2 set.
+
+[2026-06-18 14:05:00+08:00]
+Touched files: app/freshsalt_surface/lib/routing/app_router.dart; app/freshsalt_surface/lib/shared/widgets/platform_bottom_nav_shell.dart; app/freshsalt_surface/lib/shared/widgets/platform_module_shell.dart; app/freshsalt_surface/lib/features/home/home_page.dart; app/freshsalt_surface/lib/features/result/result_page.dart; app/freshsalt_surface/lib/features/history/history_page.dart; app/freshsalt_surface/lib/features/report/report_page.dart; app/freshsalt_surface/lib/features/demo_validation/demo_validation_page.dart; outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Completed the shared bottom-navigation shell refactor for the five primary tabs and verified a clean analyzer pass. Fresh browser-visible validation is still blocked by local preview startup instability rather than a source compile error.
+Notes or risks: The structural fix is in place, but a new live five-tab click proof still needs one stable preview port before final visual acceptance can be claimed.
+
+[2026-06-18 22:50:00+08:00]
+Touched files: outputs/capture-ui-v2-review-board.html; workflow.log
+Progress or issue: Added a lightweight review board that places current app screenshots beside the three capture UI v2 drafts, so visual confirmation can focus on platform observability and style alignment before any Flutter implementation work.
+Notes or risks: No Flutter source, model, camera dependency, or test workflow was changed. User visual confirmation is still required before implementation.
+
+[2026-06-18 23:16:00+08:00]
+Touched files: app/freshsalt_surface/lib/features/capture/capture_page.dart; outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Implemented the confirmed v2 capture page direction in Flutter. The capture route now prioritizes a platform-style visible capture entry with PNG/JPG import, permission-gated camera entry, gray-card/ROI preview semantics, current status, next-step status, sample switching, and bottom navigation aligned to the existing app style.
+Notes or risks: `dart analyze lib/features/capture/capture_page.dart` initially reached the file and reported only one non-blocking const lint, but later analyzer/browser screenshot attempts hit local runtime resource and Edge screenshot instability. A fresh 4334 web-server responded HTTP 200, but browser-visible screenshot proof remains incomplete and is logged in workflow-error.
+
+[2026-06-18 23:22:00+08:00]
+Touched files: app/freshsalt_surface/lib/features/capture/capture_page.dart; workflow.log
+Progress or issue: Cleaned the remaining capture-page const lint and reran the focused analyzer check for `lib/features/capture/capture_page.dart`; it now reports no issues.
+Notes or risks: Full app tests and broader analyzer were intentionally not run per platform-observability priority. Browser-visible screenshot evidence is still pending due to local Edge/runtime instability already logged in workflow-error.
+
+[2026-06-18 14:20:00+08:00]
+Touched files: app/freshsalt_surface/lib/routing/app_router.dart; app/freshsalt_surface/lib/shared/widgets/platform_bottom_nav_shell.dart; app/freshsalt_surface/lib/shared/widgets/platform_module_shell.dart; app/freshsalt_surface/lib/features/home/home_page.dart; app/freshsalt_surface/lib/features/result/result_page.dart; app/freshsalt_surface/lib/features/history/history_page.dart; app/freshsalt_surface/lib/features/report/report_page.dart; app/freshsalt_surface/lib/features/demo_validation/demo_validation_page.dart; workflow.log
+Progress or issue: Completed browser-visible verification on the stable static preview at http://localhost:4333. Home, result, history, report, and validation tabs all kept the bottom navigation fixed at the bottom, with correct selected-state highlighting and route changes.
+Notes or risks: Static preview was used because flutter run preview ports were unstable. The requested bottom-navigation issue is visibly resolved on the built web artifact.
+
+[2026-06-18 23:32:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Rechecked the implemented capture page with a focused analyzer pass; `dart analyze lib/features/capture/capture_page.dart` reports no issues. Attempted a static web build for a cleaner preview path, but `flutter build web` failed due to Dart VM out-of-memory during dart2js.
+Notes or risks: The edited capture page has positive file-level verification, but browser-visible acceptance remains pending due to local runtime resource exhaustion rather than an identified capture-page source error. No extra tests or secondary module work were run.
+
+[2026-06-18 23:56:00+08:00]
+Touched files: outputs/capture-page-v2-4336.png; workflow.log
+Progress or issue: Captured a browser-visible preview of the implemented capture page at `http://127.0.0.1:4336/#/capture`. The first screen now shows the v2 platform-style capture workbench with the light Material surface, pale green hero panel, white cards, teal primary import button, camera permission entry, gray-card/ROI preview, status cards, and bottom navigation.
+Notes or risks: This satisfies the current capture-page visual acceptance target. Further work should only address a newly identified visible mismatch, not broaden into tests or secondary modules.
+
+[2026-06-19 00:00:00+08:00]
+Touched files: outputs/workflow-error-2026-06-15.md; workflow.log; outputs/capture-page-v2-4336.png
+Progress or issue: Reviewed workflow-error and the latest capture-page preview, then consolidated the remaining issues into a targeted next-step plan. The plan prioritizes visible acceptance blockers, preview stability, and baseline-language alignment before any new feature expansion or broad testing.
+Notes or risks: No business code was modified. The plan intentionally excludes secondary-module expansion, broad test recovery, and real camera/pixel-pipeline implementation until the user explicitly re-prioritizes them.
+
+[2026-06-19 14:20:00+08:00]
+Touched files: app/freshsalt_surface/lib/features/result/result_page.dart; outputs/4343-result-localhost.png; workflow.log
+Progress or issue: Verified the latest result-page source change on a fresh localhost web-server preview. The repeated first-screen title is gone, and the result hero now hands off more directly to the primary result card on the mobile viewport.
+Notes or risks: The result page moved closer to the platform language target, but broader cross-page alignment still remains for history, report, and validation. No new feature scope was added.
+
+[2026-06-19 14:45:00+08:00]
+Touched files: app/freshsalt_surface/lib/features/history/history_page.dart; outputs/4343-history-localhost-v3.png; workflow.log
+Progress or issue: Verified the latest history-page source change on the localhost:4343 preview. The long explanatory hero copy was compressed, the redundant platform-status card was removed, and the filter/action block now lands within the first screen on mobile.
+Notes or risks: History moved closer to the same platform language as capture and result. Report and validation still remain for later visible alignment.
+
+[2026-06-19 15:25:00+08:00]
+Touched files: app/freshsalt_surface/lib/features/report/report_page.dart; outputs/4343-report-localhost-v3.png; workflow.log
+Progress or issue: Verified the latest report-page source change on the localhost:4343 preview. The dark export shell was replaced by a light platform-style report workbench, and the empty state now provides direct next actions into capture and history instead of ending in a dead prompt.
+Notes or risks: Report moved closer to the same platform language as capture, result, and history. Validation still remains for the next visible alignment pass.
+
+[2026-06-19 16:15:00+08:00]
+Touched files: app/freshsalt_surface/lib/features/demo_validation/demo_validation_page.dart; outputs/{4343-home-final.png,4343-capture-final.png,4343-result-localhost.png,4343-history-localhost-v3.png,4343-report-localhost-v3.png,4343-validation-localhost-v4.png}; workflow.log
+Progress or issue: Closed the visible alignment pass on a single localhost:4343 preview surface. Home, capture, result, history, report, and validation now all have same-surface browser evidence, and the validation page now surfaces its primary action on the first screen instead of reading as a dead explanatory page.
+Notes or risks: This completes the current platform-language alignment pass without expanding into real camera, real pixel processing, or broad test repair. Validation still uses temporary ASCII action labels because that minimized encoding-risk while restoring the first-screen CTA.
+
+[2026-06-19 16:20:00+08:00]
+Touched files: app/freshsalt_surface/lib/features/demo_validation/demo_validation_page.dart; outputs/{4343-validation-localhost-v4.png,4343-validation-localhost-v5.png}; workflow.log
+Progress or issue: Verified the validation-page first-screen adjustment on the localhost:4343 preview. The primary validation action is now visible on the first screen, so the page no longer reads as a dead explanatory surface before the user reaches any operation.
+Notes or risks: This completes the current visible alignment pass across home, capture, result, history, report, and validation on one stable preview entry. A later pass can normalize the temporary validation button copy if desired, but no further page-level blocker remains for the current acceptance target.
+
+[2026-06-20 15:35:00+08:00]
+Touched files: app/freshsalt_surface/lib/features/capture/capture_page.dart; app/freshsalt_surface/test/app_flow_test.dart; app/freshsalt_surface/test/widget_test.dart; app/freshsalt_surface/android/gradle.properties; app/freshsalt_surface/pubspec.yaml; app/freshsalt_surface/lib/theme/app_theme.dart; .gitignore; app/freshsalt_surface/android/.gitignore; outputs/workflow-error-2026-06-15.md; workflow.log
+Progress or issue: Completed Android readiness review and fixed the direct capture prediction-to-save path by reading orchestrator results from the `results` payload and decoding JSON maps back into `FeatureVector` and `PredictionResult`. Realigned stale widget assertions with the accepted v2 platform labels and removed local Microsoft YaHei TTC font dependency before public GitHub publishing.
+Notes or risks: Verification passed with `flutter analyze`, `flutter test` (50 tests), and `flutter build apk --debug` through an ASCII `subst X:` path. Direct APK build from the Chinese workspace path still hits Flutter shader write failure; no Android device/emulator was connected, so real-device `flutter run -d android` was not performed.

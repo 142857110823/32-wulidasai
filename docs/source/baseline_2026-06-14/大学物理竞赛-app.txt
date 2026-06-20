@@ -1,0 +1,706 @@
+下面这份可以直接复制到新对话第一条使用。它的核心目标是：**让新 Codex 先确认边界、只围绕 FreshSalt Surface APP 开展，不再混入 water_erosion_mvp 或其他竞赛平台文件。**
+
+---
+
+```markdown
+# FreshSalt Surface / 表面盐影像助手 APP 新工作区启动 Prompt
+
+你是 Codex，当前任务是在一个全新的、干净的工作区中，从零开始搭建大学物理实验竞赛项目 APP：FreshSalt Surface / 表面盐影像助手。
+
+默认语言：中文。
+默认技能：必须先调用并遵守 `using-superpowers` 与 `karpathy-guidelines`。
+如果找不到其中任何一个 skill，必须明确说明“未找到该 skill”，然后按其精神继续执行，不得假装已调用。
+
+## 一、最高目标
+
+开发一个 Android 优先的 Flutter APP 原型，用于大学物理实验竞赛项目：
+
+**基于受控 RGB 成像与半物理 / 灰箱模型的果蔬表面盐分无损检测与实验验证平台。**
+
+本 APP 的定位不是普通食品检测工具，也不是水蚀平台，也不是执法检测仪。
+
+它的实际职责是：
+
+1. 管理实验样品信息。
+2. 引导受控拍照流程。
+3. 接收或模拟 RGB / ROI 图像特征。
+4. 基于半物理模型和标定模型完成盐分估计。
+5. 展示结果、置信度、模型解释、历史趋势。
+6. 使用模拟数据完成全流程点击验证。
+7. 为后续真实实验数据接入预留接口。
+
+## 二、绝对禁止跑偏
+
+禁止把本项目做成以下方向：
+
+- 不要做 `water_erosion_mvp`。
+- 不要做土壤侵蚀、水蚀、遥感、Streamlit 平台。
+- 不要复用旧污染目录里的无关代码。
+- 不要创建 Python Streamlit 前端。
+- 不要把 APP 做成“手机随手拍一下直接测盐”的宣传工具。
+- 不要输出“食品安全合格 / 不合格”“能不能吃”等结论。
+- 不要做云端强依赖。
+- 不要为了看起来高级加入无关 AI、账号系统、权限系统、大而空的架构。
+- 不要只做 UI，不做数据流。
+- 不要只做模型，不做 APP 点击流程。
+- 不要把核心模型公式写进 Widget 页面里。
+
+如发现当前工作区存在大量旧项目、无关目录或污染文件，必须先停止写代码，输出污染风险判断，并只在 FreshSalt APP 专属目录内工作。
+
+## 三、新工作区边界
+
+当前工作区应当只服务于：
+
+`FreshSalt Surface / 表面盐影像助手 / 大学物理实验竞赛 APP`
+
+建议目录：
+
+```text
+workspace/
+  AGENTS.md
+  rules/
+    freshsalt.rules.md
+  docs/
+    source/
+    planning/
+  app/
+    freshsalt_surface/
+  outputs/
+```
+
+其中：
+
+- `app/freshsalt_surface/`：Flutter 工程。
+- `docs/source/`：用户提供的方案、UI、模型、决策树等依据文档。
+- `docs/planning/`：开发计划、验收表、风险记录。
+- `outputs/`：阶段性交付物。
+- `rules/`：项目规则。
+
+不得把无关平台代码、其他竞赛代码、旧 Streamlit 项目代码复制进来。
+
+## 四、开始前必须检查
+
+在写任何代码前，必须先执行 repo onboarding：
+
+1. 查看当前工作区根目录。
+2. 查找并读取 `AGENTS.md`。
+3. 查找并读取 `rules/` 下规则文件。
+4. 查找 Flutter 工程是否已存在。
+5. 查找已有 docs / outputs / UI 设计文件。
+6. 确认当前目录不是旧的 `water_erosion_mvp` 平台目录。
+7. 检查 Flutter 是否可用：
+
+```powershell
+flutter --version
+```
+
+如果 Flutter 不存在，必须报告缺失，不得假装已验证。
+
+## 五、必读依据文件
+
+如果这些文件存在，必须优先读取并作为依据：
+
+```text
+docs/source/FreshSalt_Surface_APP框架决策树_输入交互模型输出_2026-06-13.md
+docs/source/FreshSalt_Surface_APP平台方案与点击式模拟验证规划_2026-06-12.docx
+docs/source/freshsalt_ui_redesign_v3_2026-06-13/images/00_ui_board_v3.png
+docs/source/freshsalt_ui_redesign_v3_2026-06-13/images/03_result_detail_v3.png
+```
+
+如果文件不存在：
+
+- 不得去污染目录里乱翻。
+- 先列出缺失文件。
+- 再基于本 Prompt 搭建最小可运行 APP。
+- 后续用户补充文件后再对齐。
+
+## 六、产品定位
+
+APP 名称：
+
+- 中文：表面盐影像助手
+- 英文：FreshSalt Surface
+
+项目定位：
+
+- 大学物理实验竞赛 APP。
+- 面向受控成像实验。
+- 通过 RGB 图像特征、ROI、光照校正、参考白板 / 色卡校正、半物理模型和标定模型，估计果蔬表面盐分相关指标。
+- 第一阶段以模拟数据验证 APP 框架、交互、数据流、模型接口和结果展示。
+- 后续再接入真实实验图像和标定数据。
+
+一句话定位：
+
+> FreshSalt Surface 是一个面向大学物理实验竞赛的受控 RGB 成像盐分估计 APP，用于完成样品建档、图像采集、特征提取、模型估计、结果解释、历史分析与模拟验证闭环。
+
+## 七、底层模型边界
+
+第一阶段采用可配置的半物理 / 灰箱模型接口，不要求真实实验已完成。
+
+模型链路：
+
+```text
+样品信息
+  -> 受控拍照 / 模拟图像
+  -> ROI 选择
+  -> 白板 / 色卡 / 光照校正
+  -> RGB / HSV / Lab 特征提取
+  -> 特征归一化
+  -> 标定模型估计
+  -> 表面盐分指标输出
+  -> 置信度 / 适用范围 / 异常提示
+```
+
+模型不得写在 Widget 中。
+
+建议分层：
+
+```text
+UI 页面层
+Application Service 层
+Vision / Feature 层
+Model Core 层
+Repository 层
+Export 层
+Demo Data 层
+```
+
+第一阶段可用模拟数据，但必须所有模拟数据显式标记。
+
+## 八、MVP 必须实现
+
+第一阶段 MVP 优先级：
+
+1. 进入 APP。
+2. 选择演示模式。
+3. 选择或新建样品。
+4. 进入受控拍照模拟流程。
+5. 选择模拟图像 / 模拟 ROI。
+6. 展示 RGB 特征提取结果。
+7. 调用本地模拟模型。
+8. 输出表面盐分估计结果。
+9. 显示结果详情：
+   - 主结果
+   - 单位
+   - 置信度
+   - 适用范围
+   - 结果等级，但不得出现食品安全结论
+   - 模型解释
+   - 历史趋势图
+   - 边界提示
+10. 保存历史记录。
+11. 查看历史详情。
+12. 导出 CSV 或生成可复制 CSV 文本。
+13. 提供点击式模拟验证台：
+   - 逐模块点击
+   - 一键全链路
+   - 每一步显示输入、运行模型、反馈、输出
+
+## 九、UI 要求
+
+采用当前 v3 UI 方向，不再重新发散审美方向。
+
+风格关键词：
+
+- 实验型
+- 清晰
+- 工具型
+- 移动端原生感
+- 克制
+- 可信
+- 数据可读
+- 不要赛博朋克
+- 不要营销首页
+- 不要大段说明替代真实流程
+
+结果详情页必须突出：
+
+- 主结果卡片
+- 图表化解释
+- 范围标尺
+- 历史趋势
+- 模型输入摘要
+- 图像证据
+- 风险说明
+
+风险说明必须类似：
+
+> 本结果仅用于大学物理实验与方法验证，不作为食品安全、商品分级或执法检测依据。
+
+## 十、建议技术栈
+
+优先使用：
+
+- Flutter
+- Android 优先
+- Dart 本地模型逻辑
+- 本地 JSON / 内存 Repository 起步
+- 后续可替换为 SQLite / Drift
+
+第一阶段不要强制接入：
+
+- 云端账号
+- 真实相机插件
+- 真实蓝牙
+- PDF 插件
+- 复杂权限系统
+- 后端服务器
+
+如插件安装成本过高，先用可运行 Mock 实现。
+
+## 十一、推荐源码结构
+
+```text
+app/freshsalt_surface/lib/
+  main.dart
+  app.dart
+  routing/
+    app_router.dart
+  theme/
+    app_theme.dart
+
+  core/
+    models/
+    services/
+    repositories/
+    vision/
+    model/
+    export/
+    demo/
+
+  features/
+    splash/
+    dashboard/
+    sample/
+    capture/
+    roi/
+    result/
+    history/
+    analysis/
+    report/
+    settings/
+    demo_validation/
+
+  shared/
+    widgets/
+```
+
+核心原则：
+
+- 页面只负责展示和交互。
+- 服务层负责流程。
+- 模型层负责估计。
+- Vision 层负责图像特征。
+- Repository 负责本地数据。
+- Export 负责 CSV / 报告。
+
+## 十二、开发顺序
+
+严格按以下顺序：
+
+1. 创建或确认 Flutter 工程。
+2. 创建 `AGENTS.md` 和 `rules/freshsalt.rules.md`。
+3. 创建主题、路由、页面骨架。
+4. 创建核心模型。
+5. 创建 Demo 数据。
+6. 创建模型核心和模拟估计器。
+7. 创建 Repository 接口和内存实现。
+8. 创建 Service 流程。
+9. 创建演示模式首页。
+10. 创建样品流程。
+11. 创建图像 / ROI 模拟流程。
+12. 创建结果详情页。
+13. 创建历史记录。
+14. 创建 CSV 导出。
+15. 创建点击式模拟验证台。
+16. 创建最小测试。
+17. 运行验证命令。
+18. 输出完成情况、风险和下一步。
+
+## 十三、验证命令
+
+每个阶段至少运行：
+
+```powershell
+cd app/freshsalt_surface
+flutter pub get
+flutter analyze
+flutter test
+```
+
+如需要预览：
+
+```powershell
+flutter run
+```
+
+如果没有真机 / 模拟器：
+
+- 明确说明未运行真机原因。
+- 至少完成 `flutter analyze` 和 `flutter test`。
+
+## 十四、测试最低要求
+
+必须覆盖：
+
+1. 模拟模型输入合法性。
+2. RGB 特征归一化。
+3. 模拟盐分估计输出。
+4. 置信度计算。
+5. 模拟数据标记。
+6. 历史记录保存。
+7. CSV 导出字段。
+8. 结果页 ViewModel 生成。
+9. 点击式验证台全链路状态。
+
+## 十五、输出格式
+
+每次回复必须使用中文，并按以下格式：
+
+```text
+本次完成：
+- ...
+
+涉及文件：
+- ...
+
+验证：
+- flutter analyze：通过 / 失败，摘要
+- flutter test：通过 / 失败，摘要
+- flutter run：已运行 / 未运行，原因
+
+剩余风险：
+- ...
+
+下一步：
+- ...
+```
+
+不得只说“已完成”。
+
+## 十六、什么时候必须问用户
+
+默认不要频繁打断用户。
+
+但出现以下情况必须先问，不得自作主张：
+
+1. 项目定位冲突。
+2. 文件显示这不是 FreshSalt APP。
+3. 必读依据文件互相矛盾。
+4. 需要删除、覆盖、迁移大量文件。
+5. 需要写入工作区外路径。
+6. 需要安装高风险第三方依赖。
+7. 需要改变核心技术栈。
+8. 模型方向从 RGB 成像偏离到电导率、遥感、水蚀、食品安全执法等无关方向。
+
+提问必须少而准，只问阻塞方向的问题。
+
+## 十七、完成标准
+
+第一阶段完成标准：
+
+- Flutter 工程可运行。
+- `flutter analyze` 通过。
+- `flutter test` 通过。
+- 演示模式完整可点击。
+- 样品 -> 模拟图像 -> ROI -> 特征 -> 模型 -> 结果 -> 历史 -> CSV 闭环可跑通。
+- 所有模拟数据明确标记。
+- 结果详情有图表化表达。
+- 不出现食品安全合格 / 不合格结论。
+- 不混入 water_erosion_mvp 或其他竞赛项目代码。
+
+现在开始：先执行工作区检查、读取 AGENTS.md / rules / docs，再制定最小实现计划，然后直接推进第一阶段 MVP。
+```
+
+---
+
+下面是新工作区建议放置的 `AGENTS.md`。
+
+```markdown
+# AGENTS.md
+
+Use Chinese by default.
+
+## Project Identity
+
+This workspace is only for:
+
+**FreshSalt Surface / 表面盐影像助手**
+
+A Flutter Android-first APP for a university physics experiment competition project.
+
+The APP focuses on controlled RGB imaging, ROI feature extraction, semi-physical / gray-box modeling, local inference, simulated click validation, history, and report/export workflow.
+
+## Hard Boundary
+
+Do not build or modify unrelated projects.
+
+Forbidden directions:
+
+- water_erosion_mvp
+- Streamlit scientific platform
+- soil erosion / water erosion / remote sensing platform
+- food safety verdict app
+- law-enforcement testing tool
+- cloud-first product
+- marketing landing page
+- camera-snapshot-direct-salt-detection gimmick
+
+If the current workspace appears polluted by unrelated files, stop and report the risk before coding.
+
+## Required Skills
+
+At the beginning of a new task, use:
+
+- `using-superpowers`
+- `karpathy-guidelines`
+
+If a required skill is unavailable, state that clearly and continue with the same operating principles.
+
+## Working Rules
+
+- Inspect before acting.
+- Read docs, existing files, commands, and project rules before making claims.
+- Prefer the smallest useful implementation.
+- Keep changes scoped.
+- Preserve user files.
+- Do not invent commands, APIs, or directory meanings.
+- Do not write formulas or model logic inside UI Widgets.
+- Do not fake verification.
+- Do not create unrelated architecture.
+
+## Architecture
+
+Use layered structure:
+
+```text
+UI 页面层
+Application Service 层
+Vision / Feature 层
+Model Core 层
+Repository 层
+Export 层
+Demo Data 层
+```
+
+UI pages display state and collect input only.
+
+Model and calculation logic must live under `core/model` or equivalent.
+
+Vision / feature extraction logic must live under `core/vision`.
+
+Storage access must go through repositories.
+
+## MVP Scope
+
+The first MVP must implement:
+
+- App entry
+- Demo mode
+- Sample creation
+- Simulated image / ROI flow
+- RGB feature extraction mock
+- Local model estimation mock
+- Result detail page
+- History list and detail
+- CSV export or copyable CSV
+- Click validation console
+
+All simulated data must be visibly marked.
+
+## UI Direction
+
+Use the v3 design direction:
+
+- restrained
+- experimental
+- mobile-native
+- clear data hierarchy
+- chart-based result detail
+- no cyberpunk styling
+- no marketing homepage
+
+The result page must include:
+
+- main result
+- unit
+- confidence
+- range indicator
+- trend chart
+- model explanation
+- image evidence
+- warning that the result is for experiment validation only
+
+## Verification
+
+Before claiming completion, run the smallest meaningful checks:
+
+```powershell
+flutter pub get
+flutter analyze
+flutter test
+```
+
+If `flutter run` cannot be executed due to missing emulator/device, report the reason.
+
+## Reporting Format
+
+Use this format in final replies:
+
+```text
+本次完成：
+- ...
+
+涉及文件：
+- ...
+
+验证：
+- flutter analyze：通过/失败，摘要
+- flutter test：通过/失败，摘要
+- flutter run：已运行/未运行，原因
+
+剩余风险：
+- ...
+
+下一步：
+- ...
+```
+```
+
+---
+
+下面是建议放在 `rules/freshsalt.rules.md` 的内容。
+
+```markdown
+# FreshSalt Surface Rules
+
+## 1. 实用性优先
+
+优先完成可运行闭环。
+
+排序：
+
+```text
+可实现 > 可验证 > 可维护 > 竞争性 > 美观性 > 扩展性
+```
+
+不要为了未来可能用到的功能提前堆架构。
+
+## 2. 项目唯一方向
+
+本项目只做：
+
+```text
+大学物理实验竞赛 APP
+受控 RGB 成像
+果蔬表面盐分估计
+半物理 / 灰箱模型
+模拟数据点击验证
+```
+
+不做：
+
+```text
+水蚀平台
+遥感平台
+土壤侵蚀模型
+食品安全判定
+执法检测
+云端平台
+```
+
+## 3. 模拟数据规则
+
+模拟数据必须：
+
+- 标记为“模拟数据”
+- 不伪装成真实实验数据
+- 可用于点击验证
+- 可被后续真实数据替换
+
+## 4. 模型规则
+
+模型逻辑不得写在页面 Widget 中。
+
+模型输入至少应包含：
+
+- 样品信息
+- 图像 / ROI 特征
+- 光照或白板校正参数
+- 标定参数
+- 模拟或真实数据来源标记
+
+模型输出至少应包含：
+
+- 表面盐分估计值
+- 单位
+- 置信度或可信等级
+- 适用范围提示
+- 异常提示
+- 数据来源
+
+## 5. UI 规则
+
+APP 是实验工具，不是宣传页。
+
+每个关键页面必须回答：
+
+- 用户输入什么？
+- 用户点击什么？
+- 系统运行什么？
+- 系统反馈什么？
+- 最终输出什么？
+
+结果详情页必须图表化，不允许只堆文字。
+
+## 6. 验证规则
+
+不得声称通过，除非实际运行过命令。
+
+最低验证：
+
+```powershell
+flutter analyze
+flutter test
+```
+
+若失败，必须报告失败原因和下一步修复方向。
+
+## 7. 文件污染防护
+
+不得复制旧项目无关文件。
+
+不得在工作区根目录乱放临时脚本。
+
+生成文件必须放入明确目录：
+
+```text
+docs/
+outputs/
+app/
+rules/
+```
+
+## 8. 停止条件
+
+遇到以下情况必须停止并澄清：
+
+- 当前目录不是 FreshSalt APP 工作区
+- 用户资料互相冲突
+- 需要删除大量文件
+- 要写入工作区外路径
+- 要引入高风险依赖
+- 需求方向变成旧水蚀平台或无关竞赛平台
+```
+
+---
+
+建议你新建工作区时，只带这几类文件进去：
+
+```text
+AGENTS.md
+rules/freshsalt.rules.md
+docs/source/项目方案与UI依据文件
+```
+
+不要把旧的 `water_erosion_mvp` 整包复制进去。新对话第一步就让 Codex 执行工作区检查，这样能最大限度避免再次跑偏。
