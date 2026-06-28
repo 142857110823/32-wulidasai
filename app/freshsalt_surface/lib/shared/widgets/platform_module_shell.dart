@@ -20,15 +20,17 @@ class PlatformModuleShell extends StatelessWidget {
 
   Widget bodyContent(BuildContext context) {
     final theme = Theme.of(context);
+    final compactItems = summaryItems.take(3).toList(growable: false);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
         Container(
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(26),
             gradient: const LinearGradient(
-              colors: [Color(0xFFDDEFEB), Color(0xFFF8FBFA)],
+              colors: [Color(0xFFE8F4F0), Color(0xFFF9FCFB)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -36,47 +38,64 @@ class PlatformModuleShell extends StatelessWidget {
             boxShadow: const [
               BoxShadow(
                 color: Color(0x12000000),
-                blurRadius: 24,
-                offset: Offset(0, 12),
+                blurRadius: 22,
+                offset: Offset(0, 10),
               ),
             ],
           ),
-          padding: const EdgeInsets.all(24),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 980;
-              final intro = Column(
+              final wide = constraints.maxWidth >= 920;
+              final header = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: theme.textTheme.headlineMedium?.copyWith(
+                    style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
                   Text(
                     subtitle,
-                    style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
                   ),
-                  const SizedBox(height: 18),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: tags.map((tag) => Chip(label: Text(tag))).toList(),
-                  ),
+                  if (tags.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: tags
+                          .where((tag) => tag.trim().isNotEmpty)
+                          .take(4)
+                          .map(
+                            (tag) => Chip(
+                              visualDensity: VisualDensity.compact,
+                              label: Text(tag),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
                 ],
               );
 
-              final summary = _SummaryPanel(items: summaryItems);
+              final summary = _SummaryPanel(items: compactItems);
               if (!wide) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    intro,
-                    const SizedBox(height: 18),
-                    summary,
+                    header,
+                    if (compactItems.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      summary,
+                    ],
                   ],
                 );
               }
@@ -84,15 +103,17 @@ class PlatformModuleShell extends StatelessWidget {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 7, child: intro),
-                  const SizedBox(width: 20),
-                  Expanded(flex: 5, child: summary),
+                  Expanded(flex: 7, child: header),
+                  if (compactItems.isNotEmpty) ...[
+                    const SizedBox(width: 16),
+                    Expanded(flex: 5, child: summary),
+                  ],
                 ],
               );
             },
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         ..._withSpacing(children),
       ],
     );
@@ -102,9 +123,7 @@ class PlatformModuleShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(appBarTitle)),
-      body: SafeArea(
-        child: bodyContent(context),
-      ),
+      body: SafeArea(child: bodyContent(context)),
     );
   }
 
@@ -148,7 +167,7 @@ class PlatformSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -169,7 +188,7 @@ class PlatformSectionCard extends StatelessWidget {
                 ],
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             child,
           ],
         ),
@@ -188,24 +207,24 @@ class _SummaryPanel extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.78),
-        borderRadius: BorderRadius.circular(24),
+        color: Colors.white.withOpacity(0.84),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '模块摘要',
+            '状态摘要',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           for (var i = 0; i < items.length; i++) ...[
-            if (i > 0) const Divider(height: 24),
+            if (i > 0) const Divider(height: 18),
             _SummaryRow(item: items[i]),
           ],
         ],
@@ -227,7 +246,7 @@ class _SummaryRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 76,
+          width: 72,
           child: Text(
             item.label,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -245,11 +264,15 @@ class _SummaryRow extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                item.note,
-                style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
-              ),
+              if (item.note.trim().isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  item.note,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
+                ),
+              ],
             ],
           ),
         ),

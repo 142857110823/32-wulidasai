@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/demo/demo_app_scope.dart';
 import '../../core/demo/demo_capture_case.dart';
+import '../../core/models/ai_capture_assistant_advice.dart';
 import '../../core/models/capture_step_bundle.dart';
 import '../../core/models/capture_workflow_controller.dart';
 import '../../core/models/feature_vector.dart';
 import '../../core/models/prediction_result.dart';
+import '../../core/services/ai_capture_assistant_service.dart';
+import '../../core/services/local_image_picker.dart';
 import '../../routing/app_router.dart';
 
 class CapturePage extends StatefulWidget {
@@ -23,12 +27,21 @@ class CapturePage extends StatefulWidget {
 }
 
 class _CapturePageState extends State<CapturePage> {
+  static const AiCaptureAssistantService _aiCaptureAssistantService =
+      AiCaptureAssistantService();
+
   late final CaptureWorkflowController _controller;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    final existingController = widget.scope.captureWorkflowController;
+    if (existingController != null) {
+      _controller = existingController;
+      return;
+    }
+
     final cases = widget.scope.demoCaptureCases;
     DemoCaptureCase? initialCase;
     if (widget.initialCaseId != null) {
@@ -39,112 +52,381 @@ class _CapturePageState extends State<CapturePage> {
         }
       }
     }
+
     _controller = CaptureWorkflowController(
       selectedCase: initialCase ??
           (cases.isNotEmpty ? (cases.length > 1 ? cases[1] : cases.first) : null),
+      initialRoiPolygon: widget.scope.demoRoiPolygon,
     );
+    widget.scope.captureWorkflowController = _controller;
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedCase = _controller.selectedCase;
+    final currentCase = _controller.selectedCase;
     final activeModel = widget.scope.modelBundleService.activeModel;
 
-    if (!widget.scope.isDemoMode || selectedCase == null) {
+    if (!widget.scope.isDemoMode || currentCase == null) {
       return const _UnavailableView();
     }
 
     final stepBundle = _buildStepBundle();
     final workflowState = _controller.workflowState;
+    final qcSourceMode =
+        _controller.qualityControlResult?.metrics['source_mode'] as String?;
+    final extractionMethod =
+        _controller.featureVector?.metadata['extraction_method'] as String?;
+    final aiAdvice = _aiCaptureAssistantService.build(
+      hasImportedRealImages: _controller.hasImportedRealImages,
+      qualityControlResult: _controller.qualityControlResult,
+      roiPolygon: _controller.roiPolygon,
+    );
+    final currentStageTitle = _currentStageTitle();
+    final currentStageRoute = _currentStageRoute();
+    final currentStageArguments =
+        _stageArguments(stepBundle, currentStageRoute);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('采集')),
+      appBar: AppBar(title: const Text('图像采集')),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            _HeroPanel(
-              sampleId: selectedCase.sampleId,
-              hardwareLabel: widget.scope.hardwareProfileLabel,
-              modelId: activeModel?.modelId ?? '未启用模型包',
-            ),
-            const SizedBox(height: 16),
-            _ImageEntryCard(
-              importAction: () => _openStage(
-                context,
-                AppRouter.baselineStage,
-                _stageArguments(stepBundle, AppRouter.baselineStage),
+            _SectionCard(
+              title: '当前进度',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _KeyValueRow(label: '当前阶段', value: currentStageTitle),
+                  _KeyValueRow(
+                    label: '图像来源',
+                    value: _controller.hasImportedRealImages ? '真实图片' : '内置图片',
+                  ),
+                  _KeyValueRow(
+                    label: '模型状态',
+                    value: activeModel?.modelId ?? '未启用模型',
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => _openStage(
+                        context,
+                        currentStageRoute,
+                        currentStageArguments,
+                      ),
+                      child: Text('进入$currentStageTitle'),
+                    ),
+                  ),
+                ],
               ),
-              cameraAction: () => _showCameraPermissionNotice(context),
             ),
             const SizedBox(height: 12),
-            _StatusGrid(
-              sourceStatus: _controller.baselineImagePath == null &&
-                      _controller.saltedImagePath == null
-                  ? '待选择'
-                  : '已导入',
-              grayCardStatus:
-                  workflowState.qualityControlPassed ? '已检查' : '待检查',
-              roiStatus: _controller.roiConfirmed ? '已确认' : '待确认',
-              nextStep: _nextStageLabel(),
-              baselineStatus: _controller.baselineImagePath == null ? '未完成' : '已完成',
-              saltedStatus: _controller.saltedImagePath == null ? '未完成' : '已完成',
-            ),
-            const SizedBox(height: 12),
-            _PrimaryFlowCard(
-              currentStage: _currentStageTitle(),
-              nextStage: _nextStageLabel(),
-              onContinue: () => _openStage(
-                context,
-                _currentStageRoute(),
-                _stageArguments(stepBundle, _currentStageRoute()),
+            _SectionCard(
+              title: '导入状态',
+              child: ValueListenableBuilder<String>(
+                valueListenable: LocalImagePicker.status,
+                builder: (context, pickerState, _) {
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Chip(label: Text('picker_state: $pickerState')),
+                      Chip(
+                        label: Text(
+                          _controller.hasImportedRealImages
+                              ? 'real_image_ready'
+                              : 'waiting_for_real_image',
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
-              onQualityControl: _runQualityControl,
-              qualityControlPassed: workflowState.qualityControlPassed,
             ),
             const SizedBox(height: 12),
-            _SampleSwitchCard(
-              cases: widget.scope.demoCaptureCases,
-              selectedCase: selectedCase,
-              onSelected: _selectCase,
+            _SectionCard(
+              title: '导入图片',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '先导入基线图和待测图，再继续质控、ROI 圈定、特征提取和结果计算。',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _importBaselineImage,
+                      icon: const Icon(Icons.file_open_outlined),
+                      label: const Text('导入基线图'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _importSaltedImage,
+                      icon: const Icon(Icons.file_open_outlined),
+                      label: const Text('导入待测图'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _loadBuiltInRealSamples,
+                      icon: const Icon(Icons.image_outlined),
+                      label: const Text('加载内置图片'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (aiAdvice != null) ...[
+              const SizedBox(height: 12),
+              _SectionCard(
+                title: 'AI 采集助手',
+                child: _AiCaptureAssistantCard(advice: aiAdvice),
+              ),
+            ],
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: '快捷操作',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '当前页面优先保留采集主链路。内置图片仅用于快速体验。',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _useBaselineImage,
+                          child: const Text('使用内置基线图'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _useSaltedImage,
+                          child: const Text('使用内置待测图'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: '主链路',
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _runQualityControl,
+                      child: const Text('执行质控'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed:
+                          _controller.roiConfirmed ? _runFeatureExtraction : null,
+                      child: const Text('执行特征提取'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _runPredictionWorkflow,
+                      child: const Text('执行结果计算'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: '功能入口',
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _RouteChip(
+                    label: '质控',
+                    onTap: () => _openStage(
+                      context,
+                      AppRouter.qualityControl,
+                      stepBundle,
+                    ),
+                  ),
+                  _RouteChip(
+                    label: '基线图',
+                    onTap: () => _openStage(
+                      context,
+                      AppRouter.baselineStage,
+                      _stageArguments(stepBundle, AppRouter.baselineStage),
+                    ),
+                  ),
+                  _RouteChip(
+                    label: '待测图',
+                    onTap: () => _openStage(
+                      context,
+                      AppRouter.saltedStage,
+                      _stageArguments(stepBundle, AppRouter.saltedStage),
+                    ),
+                  ),
+                  _RouteChip(
+                    label: 'ROI',
+                    onTap: () => _openStage(context, AppRouter.roi, stepBundle),
+                  ),
+                  _RouteChip(
+                    label: '特征',
+                    onTap: () => _openStage(
+                      context,
+                      AppRouter.featurePreview,
+                      stepBundle,
+                    ),
+                  ),
+                  _RouteChip(
+                    label: '结果',
+                    onTap: () => _openStage(
+                      context,
+                      AppRouter.prediction,
+                      stepBundle,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: '图像状态',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _KeyValueRow(
+                    label: '基线图',
+                    value: _controller.baselineImagePath ?? '未加载',
+                  ),
+                  _KeyValueRow(
+                    label: '待测图',
+                    value: _controller.saltedImagePath ?? '未加载',
+                  ),
+                  _KeyValueRow(
+                    label: '质控',
+                    value: workflowState.qualityControlPassed ? '已通过' : '未通过',
+                  ),
+                  _KeyValueRow(
+                    label: 'ROI',
+                    value: _controller.roiConfirmed ? '已确认' : '未确认',
+                  ),
+                  _KeyValueRow(
+                    label: '特征',
+                    value: _controller.featureVector == null ? '未提取' : '已提取',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: '运行证据',
+              child: ValueListenableBuilder<String>(
+                valueListenable: LocalImagePicker.status,
+                builder: (context, pickerState, _) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _KeyValueRow(label: 'picker_state', value: pickerState),
+                      _KeyValueRow(
+                        label: 'I0_source',
+                        value: _controller.baselineImagePath == null
+                            ? 'not_selected'
+                            : (_controller.baselineUsesSimulatedSource
+                                ? 'simulated_image'
+                                : 'real_image_file'),
+                      ),
+                      _KeyValueRow(
+                        label: 'I1_source',
+                        value: _controller.saltedImagePath == null
+                            ? 'not_selected'
+                            : (_controller.saltedUsesSimulatedSource
+                                ? 'simulated_image'
+                                : 'real_image_file'),
+                      ),
+                      _KeyValueRow(
+                        label: 'qc_source_mode',
+                        value: qcSourceMode ?? 'not_run',
+                      ),
+                      _KeyValueRow(
+                        label: 'feature_extraction',
+                        value: extractionMethod ?? 'not_run',
+                      ),
+                      if (activeModel != null)
+                        _KeyValueRow(label: 'model_id', value: activeModel.modelId),
+                    ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: '拍摄入口',
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showCameraPermissionNotice(context),
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: const Text('拍摄入口暂未接入'),
+                ),
+              ),
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 12),
-              _ErrorCard(message: _errorMessage!),
+              _SectionCard(
+                title: '提示信息',
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
             ],
           ],
         ),
       ),
-      bottomNavigationBar: const _CaptureBottomNavBar(),
     );
   }
 
   CaptureStepBundle _buildStepBundle() {
-    final workflowState = _controller.workflowState;
     return CaptureStepBundle(
       qualityControl: _controller.qualityControlResult,
       featureVector: _controller.featureVector,
       predictionResult: _controller.predictionResult,
       baselineImagePath: _controller.baselineImagePath,
       saltedImagePath: _controller.saltedImagePath,
-      roiPolygon: widget.scope.demoRoiPolygon,
-      workflowState: workflowState,
+      roiPolygon: _controller.roiPolygon,
+      workflowState: _controller.workflowState,
       controller: _controller,
       runQualityControl: _runQualityControl,
       useBaselineImage: _useBaselineImage,
       useSaltedImage: _useSaltedImage,
+      importBaselineImage: _importBaselineImage,
+      importSaltedImage: _importSaltedImage,
       confirmRoi: _confirmRoi,
+      updateRoiPolygon: _updateRoiPolygon,
       runFeatureExtraction: _runFeatureExtraction,
       runPredictionWorkflow: _runPredictionWorkflow,
       saveSession: _saveSession,
     );
-  }
-
-  void _selectCase(DemoCaptureCase item) {
-    setState(() {
-      _controller.selectCase(item);
-      _errorMessage = null;
-    });
   }
 
   void _openStage(BuildContext context, String routeName, Object? arguments) {
@@ -154,14 +436,40 @@ class _CapturePageState extends State<CapturePage> {
   void _showCameraPermissionNotice(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('真实拍照需要相机权限；当前原型先保留权限入口和测量预览。'),
+        content: Text('真实拍摄需要相机权限；当前版本先打通图片导入链路。'),
       ),
     );
   }
 
   Future<void> _runQualityControl() async {
-    final selectedCase = _controller.selectedCase;
-    if (selectedCase == null) {
+    final currentCase = _controller.selectedCase;
+    if (currentCase == null) {
+      return;
+    }
+
+    if (_controller.hasImportedRealImages) {
+      final baselineBytes = _controller.baselineImageBytes;
+      if (baselineBytes == null) {
+        setState(() {
+          _errorMessage = '基线图数据缺失，请重新导入。';
+        });
+        return;
+      }
+
+      final qcResult = await widget.scope.realImageAnalysisService
+          .performQualityControl(
+        imageBytes: baselineBytes,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _controller.applyQualityControl(qcResult);
+        _errorMessage =
+            qcResult.isPassed ? null : qcResult.failureReasons.join('\n');
+      });
       return;
     }
 
@@ -171,7 +479,7 @@ class _CapturePageState extends State<CapturePage> {
     });
 
     final qcResult = await widget.scope.qualityControlService.performQualityControl(
-      imageMetadata: selectedCase.imageMetadata,
+      imageMetadata: currentCase.imageMetadata,
     );
 
     if (!mounted) {
@@ -198,6 +506,45 @@ class _CapturePageState extends State<CapturePage> {
     });
   }
 
+  Future<void> _importBaselineImage() async {
+    await _pickImage(isBaseline: true);
+  }
+
+  Future<void> _importSaltedImage() async {
+    await _pickImage(isBaseline: false);
+  }
+
+  Future<void> _loadBuiltInRealSamples() async {
+    try {
+      final baseline = await rootBundle.load('assets/real_samples/public_i0.png');
+      final salted = await rootBundle.load('assets/real_samples/public_i1.png');
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _controller.useBaselineImage(
+          'builtin_i0.png',
+          isSimulated: false,
+          imageBytes: baseline.buffer.asUint8List(),
+        );
+        _controller.useSaltedImage(
+          'builtin_i1.png',
+          isSimulated: false,
+          imageBytes: salted.buffer.asUint8List(),
+        );
+        _controller.clearPredictionOutputs();
+        _errorMessage = null;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = '内置图片加载失败，请检查资源配置。';
+      });
+    }
+  }
+
   void _confirmRoi() {
     setState(() {
       _controller.confirmRoi();
@@ -205,9 +552,16 @@ class _CapturePageState extends State<CapturePage> {
     });
   }
 
+  void _updateRoiPolygon(Map<String, dynamic> roiPolygon) {
+    setState(() {
+      _controller.updateRoiPolygon(roiPolygon);
+      _errorMessage = null;
+    });
+  }
+
   Future<void> _runFeatureExtraction() async {
-    final selectedCase = _controller.selectedCase;
-    if (selectedCase == null ||
+    final currentCase = _controller.selectedCase;
+    if (currentCase == null ||
         _controller.baselineImagePath == null ||
         _controller.saltedImagePath == null ||
         !_controller.roiConfirmed) {
@@ -223,11 +577,17 @@ class _CapturePageState extends State<CapturePage> {
     });
 
     try {
-      final featureVector = await widget.scope.featureExtractionService.extractFeatures(
-        sessionId: sessionId,
-        imageMetadata: selectedCase.imageMetadata,
-        differenceImagePath: '/mock/diff_$sessionId.png',
-      );
+      final featureVector = _controller.hasImportedRealImages
+          ? await widget.scope.realImageAnalysisService.extractFeatures(
+              sessionId: sessionId,
+              baselineImageBytes: _controller.baselineImageBytes!,
+              saltedImageBytes: _controller.saltedImageBytes!,
+            )
+          : await widget.scope.featureExtractionService.extractFeatures(
+              sessionId: sessionId,
+              imageMetadata: currentCase.imageMetadata,
+              differenceImagePath: '/mock/diff_$sessionId.png',
+            );
 
       if (!mounted) {
         return;
@@ -250,11 +610,78 @@ class _CapturePageState extends State<CapturePage> {
   }
 
   Future<void> _runPredictionWorkflow() async {
-    final selectedCase = _controller.selectedCase;
-    if (selectedCase == null ||
-        _controller.baselineImagePath == null ||
+    final currentCase = _controller.selectedCase;
+    if (_controller.baselineImagePath == null ||
         _controller.saltedImagePath == null ||
         !_controller.roiConfirmed) {
+      return;
+    }
+
+    if (_controller.hasImportedRealImages) {
+      final activeModel = widget.scope.modelBundleService.activeModel;
+      final baselineBytes = _controller.baselineImageBytes;
+      final saltedBytes = _controller.saltedImageBytes;
+      if (activeModel == null || baselineBytes == null || saltedBytes == null) {
+        setState(() {
+          _errorMessage = '真实图片结果计算缺少模型或图像数据，请重新导入后重试。';
+        });
+        return;
+      }
+
+      final sessionId =
+          _controller.sessionId ?? 'session_${DateTime.now().millisecondsSinceEpoch}';
+
+      setState(() {
+        _errorMessage = null;
+        _controller.clearPredictionOutputs();
+      });
+
+      try {
+        final featureVector = await widget.scope.realImageAnalysisService.extractFeatures(
+          sessionId: sessionId,
+          baselineImageBytes: baselineBytes,
+          saltedImageBytes: saltedBytes,
+        );
+        final predictionResult = await widget.scope.predictionService.predict(
+          sessionId: sessionId,
+          sampleId: currentCase?.sampleId ?? 'real_image_import',
+          featureVector: featureVector,
+          modelBundle: activeModel,
+          hardwareProfileId: widget.scope.hardwareProfileLabel,
+          sourceMode: 'real_image_pixels',
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _controller.applyPrediction(
+            sessionId: sessionId,
+            featureVector: featureVector,
+            predictionResult: predictionResult,
+            pendingSavePayload: {
+              'session_id': sessionId,
+              'sample_id': currentCase?.sampleId ?? 'real_image_import',
+              'baseline_image_path': _controller.baselineImagePath!,
+              'salted_image_path': _controller.saltedImagePath!,
+              'roi_polygon': _controller.roiPolygon ?? const <String, dynamic>{},
+            },
+          );
+          _errorMessage = null;
+        });
+      } catch (error) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _errorMessage = error.toString();
+        });
+      }
+      return;
+    }
+
+    if (currentCase == null) {
       return;
     }
 
@@ -268,11 +695,11 @@ class _CapturePageState extends State<CapturePage> {
 
     final result = await widget.scope.orchestrator.executeFullCaptureWorkflow(
       sessionId: sessionId,
-      sampleId: selectedCase.sampleId,
-      imageMetadata: selectedCase.imageMetadata,
+      sampleId: currentCase.sampleId,
+      imageMetadata: currentCase.imageMetadata,
       baselineImagePath: _controller.baselineImagePath!,
       saltedImagePath: _controller.saltedImagePath!,
-      roiPolygon: widget.scope.demoRoiPolygon ?? const <String, dynamic>{},
+      roiPolygon: _controller.roiPolygon ?? const <String, dynamic>{},
     );
 
     if (!mounted) {
@@ -296,7 +723,7 @@ class _CapturePageState extends State<CapturePage> {
         predictionResult == null ||
         pendingSavePayload == null) {
       setState(() {
-        _errorMessage = '演示预测缺少必要输出。';
+        _errorMessage = '结果计算流程缺少必要输出。';
       });
       return;
     }
@@ -338,14 +765,14 @@ class _CapturePageState extends State<CapturePage> {
       case 'qc_failed':
         final reasons =
             List<String>.from(result['failure_reasons'] as List? ?? const []);
-        return reasons.isEmpty ? '质控失败，请更换案例或重试。' : reasons.join('\n');
+        return reasons.isEmpty ? '质控失败，请重试。' : reasons.join('\n');
       case 'warning':
-        return result['warning'] as String? ?? '当前硬件配置与模型包不匹配。';
+        return result['warning'] as String? ?? '当前配置与模型包不匹配。';
       case 'feature_extraction_failed':
         return result['error'] as String? ?? '特征提取失败。';
       case 'error':
       default:
-        return result['error'] as String? ?? '演示预测失败。';
+        return result['error'] as String? ?? '结果计算流程失败。';
     }
   }
 
@@ -379,54 +806,64 @@ class _CapturePageState extends State<CapturePage> {
     });
   }
 
+  Future<void> _pickImage({required bool isBaseline}) async {
+    final picked = await LocalImagePicker.pickImage();
+    if (picked == null) {
+      setState(() {
+        _errorMessage = '未选择文件，本次导入已取消。';
+      });
+      return;
+    }
+
+    if (picked.bytes.isEmpty || picked.displayPath.isEmpty) {
+      setState(() {
+        _errorMessage = '无法读取所选图片，请重新选择 PNG 或 JPG 文件。';
+      });
+      return;
+    }
+
+    setState(() {
+      if (isBaseline) {
+        _controller.useBaselineImage(
+          picked.displayPath,
+          isSimulated: false,
+          imageBytes: picked.bytes,
+        );
+      } else {
+        _controller.useSaltedImage(
+          picked.displayPath,
+          isSimulated: false,
+          imageBytes: picked.bytes,
+        );
+      }
+      _controller.clearPredictionOutputs();
+      _errorMessage = null;
+    });
+  }
+
   String _currentStageTitle() {
     if (!_controller.workflowState.qualityControlPassed) {
       return '成像质控';
     }
     if (_controller.baselineImagePath == null) {
-      return 'I0 基线图';
+      return '基线图';
     }
     if (_controller.saltedImagePath == null) {
-      return 'I1 待测图';
+      return '待测图';
     }
     if (!_controller.roiConfirmed) {
-      return 'ROI 确认';
+      return 'ROI确认';
     }
     if (_controller.featureVector == null) {
       return '特征提取';
     }
     if (_controller.predictionResult == null) {
-      return '预测计算';
+      return '结果计算';
     }
     if (!_controller.saved) {
       return '保存结果';
     }
     return '结果已保存';
-  }
-
-  String _nextStageLabel() {
-    if (!_controller.workflowState.qualityControlPassed) {
-      return '质控';
-    }
-    if (_controller.baselineImagePath == null) {
-      return 'I0';
-    }
-    if (_controller.saltedImagePath == null) {
-      return 'I1';
-    }
-    if (!_controller.roiConfirmed) {
-      return 'ROI';
-    }
-    if (_controller.featureVector == null) {
-      return '特征';
-    }
-    if (_controller.predictionResult == null) {
-      return '预测';
-    }
-    if (!_controller.saved) {
-      return '保存';
-    }
-    return '结果';
   }
 
   String _currentStageRoute() {
@@ -473,374 +910,14 @@ class _CapturePageState extends State<CapturePage> {
   }
 }
 
-class _HeroPanel extends StatelessWidget {
-  const _HeroPanel({
-    required this.sampleId,
-    required this.hardwareLabel,
-    required this.modelId,
-  });
-
-  final String sampleId;
-  final String hardwareLabel;
-  final String modelId;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE7F4F1), Color(0xFFF9FCFB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '采集工作台',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '用于完成 I0 / I1 图像进入、灰卡状态确认与 ROI 预检查。',
-            style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              const Chip(label: Text('模拟数据')),
-              Chip(label: Text(hardwareLabel)),
-              Chip(label: Text(sampleId)),
-              Chip(label: Text(modelId)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ImageEntryCard extends StatelessWidget {
-  const _ImageEntryCard({
-    required this.importAction,
-    required this.cameraAction,
-  });
-
-  final VoidCallback importAction;
-  final VoidCallback cameraAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '图像入口',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            const _CapturePreview(),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: importAction,
-                icon: const Icon(Icons.add_photo_alternate_outlined),
-                label: const Text('导入图片 PNG / JPG'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.tonalIcon(
-                onPressed: cameraAction,
-                icon: const Icon(Icons.photo_camera_outlined),
-                label: const Text('拍照采集（需相机权限）'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CapturePreview extends StatelessWidget {
-  const _CapturePreview();
-
-  @override
-  Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 2.1,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xFFEEF5F3),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        ),
-        child: CustomPaint(
-          painter: _CapturePreviewPainter(
-            primary: Theme.of(context).colorScheme.primary,
-          ),
-          child: Align(
-            alignment: const Alignment(0.86, -0.72),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD7DEDC),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFAEBBB8)),
-              ),
-              child: const Text('灰卡'),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CapturePreviewPainter extends CustomPainter {
-  const _CapturePreviewPainter({required this.primary});
-
-  final Color primary;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.7)
-      ..strokeWidth = 1;
-    for (var x = size.width / 4; x < size.width; x += size.width / 4) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (var y = size.height / 3; y < size.height; y += size.height / 3) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    final sampleRect = Rect.fromCenter(
-      center: Offset(size.width * 0.48, size.height * 0.55),
-      width: size.width * 0.44,
-      height: size.height * 0.42,
-    );
-    final samplePaint = Paint()..color = const Color(0xFF5E8250);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(sampleRect, Radius.circular(size.height * 0.18)),
-      samplePaint,
-    );
-
-    final roiRect = Rect.fromCenter(
-      center: Offset(size.width * 0.48, size.height * 0.55),
-      width: size.width * 0.56,
-      height: size.height * 0.56,
-    );
-    final roiPaint = Paint()
-      ..color = primary
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(roiRect, const Radius.circular(12)),
-      roiPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _CapturePreviewPainter oldDelegate) {
-    return oldDelegate.primary != primary;
-  }
-}
-
-class _StatusGrid extends StatelessWidget {
-  const _StatusGrid({
-    required this.sourceStatus,
-    required this.grayCardStatus,
-    required this.roiStatus,
-    required this.nextStep,
-    required this.baselineStatus,
-    required this.saltedStatus,
-  });
-
-  final String sourceStatus;
-  final String grayCardStatus;
-  final String roiStatus;
-  final String nextStep;
-  final String baselineStatus;
-  final String saltedStatus;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final narrow = constraints.maxWidth < 520;
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            SizedBox(
-              width: narrow ? constraints.maxWidth : (constraints.maxWidth - 12) / 2,
-              child: _InfoCard(
-                title: '当前状态',
-                rows: {
-                  '来源': sourceStatus,
-                  '灰卡': grayCardStatus,
-                  'ROI': roiStatus,
-                },
-              ),
-            ),
-            SizedBox(
-              width: narrow ? constraints.maxWidth : (constraints.maxWidth - 12) / 2,
-              child: _InfoCard(
-                title: '下一步',
-                rows: {
-                  '流程': nextStep,
-                  'I0': baselineStatus,
-                  'I1': saltedStatus,
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _PrimaryFlowCard extends StatelessWidget {
-  const _PrimaryFlowCard({
-    required this.currentStage,
-    required this.nextStage,
-    required this.onContinue,
-    required this.onQualityControl,
-    required this.qualityControlPassed,
-  });
-
-  final String currentStage;
-  final String nextStage;
-  final VoidCallback onContinue;
-  final VoidCallback onQualityControl;
-  final bool qualityControlPassed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '采集主链',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
-            const SizedBox(height: 10),
-            const Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(label: Text('1 质控')),
-                Chip(label: Text('2 I0')),
-                Chip(label: Text('3 I1')),
-                Chip(label: Text('4 ROI')),
-                Chip(label: Text('5 特征')),
-                Chip(label: Text('6 预测')),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _InfoRow(label: '当前阶段', value: currentStage),
-            _InfoRow(label: '下一步', value: nextStage),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: onContinue,
-                child: const Text('进入当前阶段页面'),
-              ),
-            ),
-            if (!qualityControlPassed) ...[
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: onQualityControl,
-                  icon: const Icon(Icons.fact_check_outlined),
-                  label: const Text('直接运行模拟质控'),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SampleSwitchCard extends StatelessWidget {
-  const _SampleSwitchCard({
-    required this.cases,
-    required this.selectedCase,
-    required this.onSelected,
-  });
-
-  final List<DemoCaptureCase> cases;
-  final DemoCaptureCase selectedCase;
-  final ValueChanged<DemoCaptureCase> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '样品切换',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: cases.map((item) {
-                return ChoiceChip(
-                  selected: item.id == selectedCase.id,
-                  label: Text(item.title),
-                  onSelected: (_) => onSelected(item),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
     required this.title,
-    required this.rows,
+    required this.child,
   });
 
   final String title;
-  final Map<String, String> rows;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -853,13 +930,11 @@ class _InfoCard extends StatelessWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                   ),
             ),
-            const SizedBox(height: 8),
-            ...rows.entries.map(
-              (entry) => _InfoRow(label: entry.key, value: entry.value),
-            ),
+            const SizedBox(height: 12),
+            child,
           ],
         ),
       ),
@@ -867,146 +942,8 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          message,
-          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
-        ),
-      ),
-    );
-  }
-}
-
-class _CaptureBottomNavBar extends StatelessWidget {
-  const _CaptureBottomNavBar();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final items = <({String label, IconData icon, String route, bool selected})>[
-      (label: '首页', icon: Icons.home_outlined, route: AppRouter.home, selected: false),
-      (
-        label: '采集',
-        icon: Icons.add_photo_alternate_outlined,
-        route: AppRouter.capture,
-        selected: true
-      ),
-      (
-        label: '结果',
-        icon: Icons.show_chart_outlined,
-        route: AppRouter.result,
-        selected: false
-      ),
-      (label: '历史', icon: Icons.history, route: AppRouter.history, selected: false),
-      (
-        label: '验证',
-        icon: Icons.rule_folder_outlined,
-        route: AppRouter.demoValidation,
-        selected: false
-      ),
-    ];
-
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: theme.colorScheme.outlineVariant),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x12000000),
-                blurRadius: 16,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            children: items.map((item) {
-              return Expanded(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: item.selected
-                      ? null
-                      : () => Navigator.of(context).pushReplacementNamed(item.route),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 38,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: item.selected
-                                ? const Color(0xFFDFF3EC)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            item.icon,
-                            color: item.selected
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.label,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: item.selected
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurfaceVariant,
-                            fontWeight: item.selected ? FontWeight.w700 : FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _UnavailableView extends StatelessWidget {
-  const _UnavailableView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('采集')),
-      body: const SafeArea(
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Text('当前未注入可运行的演示范围，请先从平台首页进入演示模式。'),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
+class _KeyValueRow extends StatelessWidget {
+  const _KeyValueRow({
     required this.label,
     required this.value,
   });
@@ -1022,24 +959,111 @@ class _InfoRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 78,
+            width: 120,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ),
+          Expanded(child: Text(value)),
         ],
+      ),
+    );
+  }
+}
+
+class _RouteChip extends StatelessWidget {
+  const _RouteChip({
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      label: Text(label),
+      onPressed: onTap,
+    );
+  }
+}
+
+class _AiCaptureAssistantCard extends StatelessWidget {
+  const _AiCaptureAssistantCard({required this.advice});
+
+  final AiCaptureAssistantAdvice advice;
+
+  @override
+  Widget build(BuildContext context) {
+    final qualityColor =
+        advice.retakeRecommended ? Colors.orange.shade700 : Colors.green.shade700;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Chip(
+              label: Text('AI质控：${advice.qualityStatus}'),
+              backgroundColor: qualityColor.withOpacity(0.12),
+              labelStyle: TextStyle(
+                color: qualityColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Chip(
+              label: Text(
+                advice.retakeRecommended ? '建议重拍' : '可继续下一步',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'AI建议ROI',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Text(advice.roiSuggestion),
+        const SizedBox(height: 12),
+        Text(
+          '原因说明',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 6),
+        ...advice.reasons.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text('- $item'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UnavailableView extends StatelessWidget {
+  const _UnavailableView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('图像采集')),
+      body: const SafeArea(
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text('当前页面暂不可用，请先返回首页重新进入。'),
+          ),
+        ),
       ),
     );
   }

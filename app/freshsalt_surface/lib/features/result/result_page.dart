@@ -34,10 +34,30 @@ class ResultPage extends StatelessWidget {
                       Text('结果详情', style: theme.textTheme.headlineMedium),
                       const SizedBox(height: 12),
                     ],
-                    const Card(
+                    Card(
                       child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('暂无可展示结果，请先完成一次模拟预测并保存到历史。'),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '暂无真实结果',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              '请先完成一次真实图像采集、特征提取与结果计算。当前页面不再回退展示内置模拟结果。',
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton(
+                              onPressed: () =>
+                                  Navigator.of(context).pushNamed(AppRouter.capture),
+                              child: const Text('进入采集流程'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -45,7 +65,7 @@ class ResultPage extends StatelessWidget {
               : _ResultDetailContent(
                   session: session,
                   allSessionsFuture:
-                      scope.sessionRepository.getAllSessions(isSimulated: true),
+                      scope.sessionRepository.getAllSessions(isSimulated: false),
                   modelBundle: scope.modelBundleService.activeModel,
                 ),
         );
@@ -67,56 +87,11 @@ class ResultPage extends StatelessWidget {
       return scope.sessionRepository.getSession(sessionId!);
     }
     final sessions =
-        await scope.sessionRepository.getAllSessions(isSimulated: true);
+        await scope.sessionRepository.getAllSessions(isSimulated: false);
     if (sessions.isEmpty) {
-      return _buildDemoResultSession(scope);
+      return null;
     }
     return sessions.first;
-  }
-
-  Map<String, dynamic> _buildDemoResultSession(dynamic scope) {
-    final activeModel = scope.modelBundleService.activeModel;
-    final modelId = activeModel?.modelId ?? 'freshsalt_rgb_cucumber_darkbox_v1';
-    final validRange = activeModel?.validRange ?? const [0.0, 0.75];
-
-    return {
-      'session_id': 'demo-result-shell',
-      'baseline_image_path': '/mock/mock_baseline.png',
-      'salted_image_path': '/mock/mock_salted.png',
-      'roi_polygon': {
-        'area': 4.0,
-        'center_x': 126,
-        'center_y': 148,
-      },
-      'result': {
-        'session_id': 'demo-result-shell',
-        'sample_id': 'DEMO-CUCUMBER-01',
-        'model_id': modelId,
-        'predicted_mg_cm2': 0.35,
-        'unit': 'mg/cm2 NaCl eq.',
-        'source_mode': 'simulated',
-        'result_status': 'valid',
-        'confidence_level': 'medium',
-        'valid_range_min': validRange.first,
-        'valid_range_max': validRange.last,
-        'feature_vector': {
-          'dL': 0.31,
-          'da': -0.04,
-          'db': 0.06,
-          'dS': -0.12,
-          'whiteness_index': 0.42,
-          'specular_ratio': 0.28,
-          'glcm_contrast': 0.18,
-          'glcm_energy': 0.63,
-        },
-        'hardware_profile_id': scope.hardwareProfileLabel,
-        'warnings': const [
-          '当前为演示结果骨架，用于结果页 UI 验收，不代表真实实验输出。',
-          '接近中负载演示区间，请结合后续真实图像与模型验证。',
-        ],
-        'created_at': DateTime.now().toIso8601String(),
-      },
-    };
   }
 }
 
@@ -169,12 +144,21 @@ class _ResultDetailContent extends StatelessWidget {
                 final left = Column(
                   children: [
                     _ResultSection(
-                      title: '主结果卡片',
+                      title: '结果概览',
                       child: _PrimaryResultBlock(result: result),
                     ),
                     const SizedBox(height: 12),
                     _ResultSection(
-                      title: '模型输入摘要',
+                      title: 'AI 判断',
+                      child: _AiInsightBlock(
+                        result: result,
+                        modelBundle: modelBundle,
+                        contributions: contributions,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _ResultSection(
+                      title: '输入摘要',
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -193,36 +177,13 @@ class _ResultDetailContent extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    _ResultSection(
-                      title: '图像证据',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _InfoRow(
-                            label: '基线图 I0',
-                            value:
-                                session['baseline_image_path'] as String? ?? '--',
-                          ),
-                          _InfoRow(
-                            label: '待测图 I1',
-                            value: session['salted_image_path'] as String? ?? '--',
-                          ),
-                          _InfoRow(
-                            label: 'ROI 中心',
-                            value:
-                                '${roi['center_x'] ?? '--'}, ${roi['center_y'] ?? '--'}',
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 );
 
                 final right = Column(
                   children: [
                     _ResultSection(
-                      title: '范围标尺',
+                      title: '范围与趋势',
                       child: _RangeScaleBlock(
                         result: result,
                         progress: progress,
@@ -230,15 +191,7 @@ class _ResultDetailContent extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _ResultSection(
-                      title: '历史趋势',
-                      child: _HistoryTrendBlock(
-                        currentResult: result,
-                        sessions: sessions,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _ResultSection(
-                      title: '模型解释',
+                      title: '关键特征',
                       child: contributions.isEmpty
                           ? const Text('当前缺少模型系数，无法生成解释。')
                           : Column(
@@ -269,6 +222,34 @@ class _ResultDetailContent extends StatelessWidget {
                               }).toList(),
                             ),
                     ),
+                    const SizedBox(height: 12),
+                    _ResultSection(
+                      title: '图像与 ROI',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _InfoRow(
+                            label: '基线图 I0',
+                            value:
+                                session['baseline_image_path'] as String? ?? '--',
+                          ),
+                          _InfoRow(
+                            label: '待测图 I1',
+                            value: session['salted_image_path'] as String? ?? '--',
+                          ),
+                          _InfoRow(
+                            label: 'ROI 中心',
+                            value:
+                                '${roi['center_x'] ?? '--'}, ${roi['center_y'] ?? '--'}',
+                          ),
+                          const SizedBox(height: 12),
+                          _HistoryTrendBlock(
+                            currentResult: result,
+                            sessions: sessions,
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 );
 
@@ -294,45 +275,17 @@ class _ResultDetailContent extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _ResultSection(
-              title: '风险说明',
+              title: '使用边界',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    '本结果仅用于大学物理实验与方法验证，不作为食品安全、商品分级或执法检测依据。',
+                    '本结果用于图像分析流程验证与方法比对，不提供食品安全、医疗或执法性质结论。',
                   ),
                   if (result.warnings.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     ...result.warnings.map((warning) => Text('• $warning')),
                   ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _ResultSection(
-              title: '后续动作',
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        Navigator.of(context).pushNamed(AppRouter.history),
-                    icon: const Icon(Icons.history),
-                    label: const Text('查看历史记录'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        Navigator.of(context).pushNamed(AppRouter.analysis),
-                    icon: const Icon(Icons.insights_outlined),
-                    label: const Text('查看分析总览'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        Navigator.of(context).pushNamed(AppRouter.report),
-                    icon: const Icon(Icons.article_outlined),
-                    label: const Text('生成报告预览'),
-                  ),
                 ],
               ),
             ),
@@ -496,7 +449,7 @@ class _ResultHero extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                '模拟数据 | 本页仅用于大学物理实验与方法验证，不作为食品安全、商品分级或执法检测依据。',
+                '先看结果，再看 AI 判断与后续建议。',
                 style: theme.textTheme.bodyLarge?.copyWith(height: 1.45),
               ),
               const SizedBox(height: 14),
@@ -504,10 +457,9 @@ class _ResultHero extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  const Chip(label: Text('模拟数据')),
                   Chip(label: Text('状态 ${result.resultStatus}')),
                   Chip(label: Text('置信 ${result.confidenceLevel}')),
-                  Chip(label: Text('模型 ${result.modelId}')),
+                  Chip(label: Text(result.modelId)),
                 ],
               ),
             ],
@@ -520,12 +472,12 @@ class _ResultHero extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onOpenHistory,
                 icon: const Icon(Icons.history),
-                label: const Text('进入历史模块'),
+                label: const Text('进入历史记录'),
               ),
               OutlinedButton.icon(
                 onPressed: onOpenReport,
                 icon: const Icon(Icons.article_outlined),
-                label: const Text('报告页'),
+                label: const Text('查看报告页'),
               ),
             ],
           );
@@ -592,12 +544,227 @@ class _PrimaryResultBlock extends StatelessWidget {
             ),
             _InlineMetric(
               label: '数据来源',
-              value: result.sourceMode,
+              value: result.sourceMode == 'simulated' ? '模拟' : '真实',
             ),
           ],
         ),
       ],
     );
+  }
+}
+
+class _AiInsightBlock extends StatelessWidget {
+  const _AiInsightBlock({
+    required this.result,
+    required this.modelBundle,
+    required this.contributions,
+  });
+
+  final PredictionResult result;
+  final ModelBundle? modelBundle;
+  final List<(String, double)> contributions;
+
+  @override
+  Widget build(BuildContext context) {
+    final confidenceLabel = _confidenceLabel(result);
+    final confidenceNote = _confidenceNote(result);
+    final driverSummary = _driverSummary();
+    final levelReason = _levelReason();
+    final recommendation = _recommendation();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _InlineMetric(label: '可信度', value: confidenceLabel),
+            _InlineMetric(
+              label: '建议动作',
+              value: recommendation.$1,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(confidenceNote),
+        const SizedBox(height: 12),
+        _AiBullet(
+          title: '关键影响因子',
+          body: driverSummary,
+        ),
+        const SizedBox(height: 8),
+        _AiBullet(
+          title: '本次结果为何偏高/偏低',
+          body: levelReason,
+        ),
+        const SizedBox(height: 8),
+        _AiBullet(
+          title: '是否建议重拍或补采',
+          body: recommendation.$2,
+        ),
+      ],
+    );
+  }
+
+  String _confidenceLabel(PredictionResult result) {
+    switch (result.confidenceLevel) {
+      case 'high':
+        return '高';
+      case 'medium':
+        return '中';
+      case 'low':
+      default:
+        return '低';
+    }
+  }
+
+  String _confidenceNote(PredictionResult result) {
+    if (result.resultStatus == 'error') {
+      return '当前结果存在流程异常，AI 不建议直接采用本次判断。';
+    }
+    if (result.isOutOfRange) {
+      return '结果已超出模型有效范围，可信度被主动下调，需谨慎解读。';
+    }
+    if (result.approachingUpperLimit) {
+      return '结果接近模型上限，AI 认为本次判断可参考，但建议补充一次复测。';
+    }
+    if (result.isSimulated) {
+      return '当前链路仍是模拟数据，AI 解释用于演示辅助判断逻辑，不代表真实实验强结论。';
+    }
+    return '结果位于模型有效范围内，且当前未触发明显警告，AI 认为本次结果具备可用参考价值。';
+  }
+
+  String _driverSummary() {
+    if (contributions.isEmpty) {
+      return '当前结果页缺少模型系数，暂时无法给出定量影响排序，可先结合特征页与警告信息人工判断。';
+    }
+
+    final top = contributions.take(3).map((item) {
+      final direction = item.$2 >= 0 ? '推高结果' : '拉低结果';
+      return '${_prettyFeatureName(item.$1)}（$direction）';
+    }).join('、');
+    return '本次判断主要受 $top 影响。AI 会优先关注这些特征对结果的正负拉动方向，而不是只报一个最终数值。';
+  }
+
+  String _levelReason() {
+    final value = result.predictedValue;
+    final mid = (result.validRangeMin + result.validRangeMax) / 2;
+
+    if (result.resultStatus == 'error') {
+      return '当前结果不是高低判断问题，而是流程本身出现错误，需要先修复输入或模型状态。';
+    }
+    if (value >= result.validRangeMax * 0.9) {
+      return '本次结果偏高，并且已经接近模型上限。通常意味着白化、高光或差分强度中的至少一项明显上升。';
+    }
+    if (value >= mid) {
+      return '本次结果位于中高区间，说明用于表征盐分变化的颜色/纹理差异已经比较明显，但尚未触发超范围。';
+    }
+    if (value <= result.validRangeMin + (result.validRangeMax - result.validRangeMin) * 0.25) {
+      return '本次结果偏低，说明关键差分特征整体较弱，当前样品更接近低负载或弱响应状态。';
+    }
+    return '本次结果处于中间区间，没有出现极高或极低的异常形态，适合作为当前实验轮次的常规参考值。';
+  }
+
+  (String, String) _recommendation() {
+    if (result.resultStatus == 'error') {
+      return (
+        '建议重拍',
+        '当前结果包含错误态。建议优先检查输入、ROI、模型包或图像质量，再重新执行一次完整链路。',
+      );
+    }
+    if (result.isOutOfRange) {
+      return (
+        '建议补采',
+        '结果已经超出模型有效范围。AI 建议补采一组图像，必要时更换样品区或调整实验条件。',
+      );
+    }
+    if (result.approachingUpperLimit || result.warnings.isNotEmpty) {
+      return (
+        '建议复拍',
+        '当前结果接近边界或已触发警告。建议至少补一张同条件图像，用于确认本次判断是否稳定。',
+      );
+    }
+    if (result.isSimulated) {
+      return (
+        '可继续流程',
+        '当前是模拟链路，无需重拍；如果要进入真实实验展示，下一步应切换到真实图像采集与复测。',
+      );
+    }
+    return (
+      '可继续流程',
+      '当前结果处于可解释区间，AI 不强制建议重拍；可以继续进入历史、分析或报告模块。',
+    );
+  }
+}
+
+class _AiBullet extends StatelessWidget {
+  const _AiBullet({
+    required this.title,
+    required this.body,
+  });
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.auto_awesome, size: 16),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(body),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _prettyFeatureName(String feature) {
+  switch (feature) {
+    case 'dL':
+      return '亮度差 dL';
+    case 'da':
+      return '色度差 da';
+    case 'db':
+      return '色度差 db';
+    case 'dS':
+      return '饱和度差 dS';
+    case 'whiteness_index':
+      return '白化指数';
+    case 'specular_ratio':
+      return '高光比例';
+    case 'glcm_contrast':
+      return '纹理对比度';
+    case 'glcm_energy':
+      return '纹理能量';
+    default:
+      return feature;
   }
 }
 
@@ -623,6 +790,11 @@ class _RangeScaleBlock extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '当前结果 ${result.predictedValue.toStringAsFixed(4)} ${result.unit}',
+        ),
+        const SizedBox(height: 14),
+        _HistoryTrendBlock(
+          currentResult: result,
+          sessions: const [],
         ),
       ],
     );

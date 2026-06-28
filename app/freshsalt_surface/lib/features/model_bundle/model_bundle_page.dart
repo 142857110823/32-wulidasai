@@ -21,35 +21,35 @@ class _ModelBundlePageState extends State<ModelBundlePage> {
     final activeModel = scope.modelBundleService.activeModel;
 
     return PlatformModuleShell(
-      appBarTitle: '模型包管理',
-      title: '模型包管理',
-      subtitle: '当前模块负责查看、启用和停用本地模型包，并把有效范围、样品类型和特征维度明确展示给平台其他模块使用，而不是只保留一个“启用”按钮。',
-      tags: const ['模拟数据', '演示模式', '平台模块'],
+      appBarTitle: '模型管理',
+      title: '模型管理',
+      subtitle: '查看当前可用模型、启用状态和适用范围，保持整个平台的分析流程一致。',
+      tags: const ['本地模型', '流程支撑', '可切换'],
       summaryItems: [
         PlatformSummaryItem(
           label: '当前模型',
           value: activeModel?.modelId ?? '未启用',
-          note: activeModel == null ? '当前主链会缺少推理能力。' : '这是平台结果、历史和报告使用的模型包。',
+          note: activeModel == null ? '当前结果页将缺少可用模型支持。' : '当前页面与结果页使用同一模型配置。',
         ),
         PlatformSummaryItem(
-          label: '模型数',
+          label: '模型数量',
           value: '${bundles.length} 个',
-          note: '当前版本以内置模拟模型为主，后续再扩展导入链路。',
+          note: '当前版本优先保证已有模型可查看、可切换、可恢复。',
         ),
         const PlatformSummaryItem(
-          label: '边界',
-          value: '实验验证',
-          note: '模型包仅用于大学物理实验与方法验证，不作为食品安全或执法依据。',
+          label: '适用方式',
+          value: '图像分析',
+          note: '仅作为图像分析流程的一部分，不输出其他领域结论。',
         ),
       ],
       children: [
         PlatformSectionCard(
-          title: '激活状态',
+          title: '启用状态',
           trailing: Chip(label: Text(activeModel == null ? '未启用' : '已启用')),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(activeModel == null ? '当前未启用模型包。' : '当前激活模型'),
+              Text(activeModel == null ? '当前没有启用模型。' : '当前模型已启用，可直接参与后续分析。'),
               const SizedBox(height: 8),
               Text(activeModel?.modelId ?? '未启用'),
               const SizedBox(height: 12),
@@ -75,7 +75,7 @@ class _ModelBundlePageState extends State<ModelBundlePage> {
           ),
         ),
         PlatformSectionCard(
-          title: '模型包目录',
+          title: '模型列表',
           child: Column(
             children: bundles
                 .map(
@@ -162,11 +162,11 @@ class _ModelBundleCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text('有效范围 ${bundle.validRange[0]} - ${bundle.validRange[1]} mg/cm2 NaCl eq.'),
+          Text('适用范围 ${bundle.validRange[0]} - ${bundle.validRange[1]} mg/cm2 NaCl eq.'),
           const SizedBox(height: 4),
           Text('目标变量 ${bundle.target}'),
           const SizedBox(height: 4),
-          Text('样品类型 ${bundle.sampleType}'),
+          Text('图像类型 ${bundle.sampleType}'),
           const SizedBox(height: 4),
           Text('特征维度 ${bundle.featureOrder.length}'),
           const SizedBox(height: 14),

@@ -18,21 +18,125 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="FreshSalt Surface">
 
-  <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="freshsalt_surface">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>freshsalt_surface</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #f4f8f6;
+      color: #17352f;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    #freshsalt-loading-shell {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      box-sizing: border-box;
+      background:
+        radial-gradient(circle at top left, rgba(193, 232, 219, 0.55), transparent 36%),
+        linear-gradient(180deg, #f7fbf9 0%, #eef6f2 100%);
+    }
+
+    .freshsalt-loading-card {
+      width: min(560px, 100%);
+      border-radius: 28px;
+      border: 1px solid rgba(23, 53, 47, 0.12);
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 18px 48px rgba(16, 58, 49, 0.08);
+      padding: 28px 24px;
+      box-sizing: border-box;
+    }
+
+    .freshsalt-loading-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.1);
+      color: #0f766e;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .freshsalt-loading-title {
+      margin: 18px 0 10px;
+      font-size: 34px;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .freshsalt-loading-text {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.7;
+      color: rgba(23, 53, 47, 0.78);
+    }
+
+    .freshsalt-loading-bar {
+      position: relative;
+      overflow: hidden;
+      height: 10px;
+      border-radius: 999px;
+      margin: 22px 0 16px;
+      background: rgba(15, 118, 110, 0.12);
+    }
+
+    .freshsalt-loading-bar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 35%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e 0%, #4ac2b4 100%);
+      animation: freshsalt-loading-slide 1.2s ease-in-out infinite;
+    }
+
+    .freshsalt-loading-list {
+      margin: 0;
+      padding-left: 18px;
+      color: rgba(23, 53, 47, 0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    @keyframes freshsalt-loading-slide {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(320%); }
+    }
+  </style>
+
+  <div id="freshsalt-loading-shell">
+    <div class="freshsalt-loading-card">
+      <div class="freshsalt-loading-badge">FreshSalt Surface 正在启动</div>
+      <h1 class="freshsalt-loading-title">表面影像分析界面加载中</h1>
+      <p class="freshsalt-loading-text">
+        当前正在准备图像采集、ROI、特征提取与结果展示模块。首次进入或本地调试启动时，页面可能需要数秒完成初始化。
+      </p>
+      <div class="freshsalt-loading-bar"></div>
+      <ul class="freshsalt-loading-list">
+        <li>如果你看到此界面，请稍等应用脚本加载完成。</li>
+        <li>若长时间停留在此页，再判定是否存在真实异常。</li>
+      </ul>
+    </div>
+  </div>
+
   <script>
     (function () {
       var isLocalPreview =
@@ -84,6 +188,14 @@
         },
       });
     })();
+  </script>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var shell = document.getElementById('freshsalt-loading-shell');
+      if (shell) {
+        shell.remove();
+      }
+    });
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../core/demo/demo_app_scope.dart';
 import '../core/demo/demo_app_scope_provider.dart';
+import '../core/demo/demo_capture_bundle_factory.dart';
 import '../core/models/capture_step_bundle.dart';
 import '../features/analysis/analysis_page.dart';
 import '../features/capture/capture_page.dart';
-import '../features/capture/image_stage_page.dart';
 import '../features/feature_preview/feature_preview_page.dart';
 import '../features/hardware/hardware_config_page.dart';
 import '../features/model_bundle/model_bundle_page.dart';
@@ -38,6 +39,9 @@ class AppRouter {
     return MaterialPageRoute<void>(
       settings: settings,
       builder: (context) {
+        final scope =
+            DemoAppScopeProvider.maybeOf(context) ?? DemoAppScopeProvider.of(context);
+
         switch (settings.name) {
           case home:
             return const PlatformBottomNavShell(currentRoute: home);
@@ -57,44 +61,17 @@ class AppRouter {
               settings.arguments as Map? ?? const <String, dynamic>{},
             );
             return CapturePage(
-              scope: DemoAppScopeProvider.of(context),
+              scope: scope,
               initialCaseId: args['initial_case_id'] as String?,
             );
           case baselineStage:
-            final args = Map<String, dynamic>.from(
-              settings.arguments as Map? ?? const <String, dynamic>{},
-            );
-            return ImageStagePage(
-              title: 'I0 基线图',
-              description: '查看当前基线图阶段状态与模拟图像路径。',
-              imagePath: args['image_path'] as String?,
-              isReady: args['is_ready'] as bool? ?? false,
-              bundle: args['bundle'] as CaptureStepBundle?,
-              previousLabel: '上一步：质控详情',
-              previousAction: () => Navigator.of(context).pop(),
-              nextLabel: '下一步：I1 待测图',
-              nextAction: () => Navigator.of(context).pushNamed(
-                saltedStage,
-                arguments: args['next_args'] as Map? ?? args,
-              ),
-            );
           case saltedStage:
             final args = Map<String, dynamic>.from(
               settings.arguments as Map? ?? const <String, dynamic>{},
             );
-            return ImageStagePage(
-              title: 'I1 待测图',
-              description: '查看当前待测图阶段状态、模拟图像路径与后续差分说明。',
-              imagePath: args['image_path'] as String?,
-              isReady: args['is_ready'] as bool? ?? false,
-              bundle: args['bundle'] as CaptureStepBundle?,
-              previousLabel: '上一步：I0 基线图',
-              previousAction: () => Navigator.of(context).pop(),
-              nextLabel: '下一步：ROI 摘要',
-              nextAction: () => Navigator.of(context).pushNamed(
-                roi,
-                arguments: args['bundle'],
-              ),
+            return CapturePage(
+              scope: scope,
+              initialCaseId: args['initial_case_id'] as String?,
             );
           case hardwareConfig:
             return const HardwareConfigPage();
@@ -108,22 +85,46 @@ class AppRouter {
             return const SettingsPage();
           case qualityControl:
             return QualityControlPage(
-              bundle: settings.arguments as CaptureStepBundle?,
+              bundle: _resolveBundle(
+                scope,
+                settings.arguments as CaptureStepBundle?,
+              ),
             );
           case roi:
-            return RoiPage(bundle: settings.arguments as CaptureStepBundle?);
+            return RoiPage(
+              bundle: _resolveBundle(
+                scope,
+                settings.arguments as CaptureStepBundle?,
+              ),
+            );
           case featurePreview:
             return FeaturePreviewPage(
-              bundle: settings.arguments as CaptureStepBundle?,
+              bundle: _resolveBundle(
+                scope,
+                settings.arguments as CaptureStepBundle?,
+              ),
             );
           case prediction:
             return PredictionPage(
-              bundle: settings.arguments as CaptureStepBundle?,
+              bundle: _resolveBundle(
+                scope,
+                settings.arguments as CaptureStepBundle?,
+              ),
             );
           default:
             return const PlatformBottomNavShell(currentRoute: home);
         }
       },
     );
+  }
+
+  static CaptureStepBundle _resolveBundle(
+    AppScope? scope,
+    CaptureStepBundle? bundle,
+  ) {
+    if (bundle != null) {
+      return bundle;
+    }
+    return scope == null ? const CaptureStepBundle() : buildDemoCaptureBundle(scope);
   }
 }

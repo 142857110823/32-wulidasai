@@ -176,3 +176,7 @@ Future<AppScope> buildRuntimeDemoScope() {
     roiPolygon: demoRoiPolygon,
   );
 }
+
+Future<AppScope> buildRuntimeScope() async {
+  return AppScope.empty();
+}

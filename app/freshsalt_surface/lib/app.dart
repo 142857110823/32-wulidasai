@@ -27,7 +27,7 @@ class _FreshSaltAppState extends State<FreshSaltApp> {
   @override
   void initState() {
     super.initState();
-    _scopeFuture = widget.scopeFuture ?? buildRuntimeDemoScope();
+    _scopeFuture = widget.scopeFuture ?? buildRuntimeScope();
   }
 
   @override
@@ -37,6 +37,62 @@ class _FreshSaltAppState extends State<FreshSaltApp> {
           ? _scopeFuture
           : Future<AppScope>.value(_scopeOverride),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Theme(
+            data: AppTheme.light(),
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: ColoredBox(
+                color: const Color(0xFFF6F9F7),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x12000000),
+                              blurRadius: 18,
+                              offset: Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '应用初始化失败',
+                                style: AppTheme.light().textTheme.headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                '当前应用未能完成启动。下面是本次初始化报错，可据此继续修复主流程。',
+                              ),
+                              const SizedBox(height: 16),
+                              SelectableText(
+                                '${snapshot.error}',
+                                style: AppTheme.light().textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
         if (!snapshot.hasData) {
           return Theme(
             data: AppTheme.light(),
@@ -79,9 +135,10 @@ class _FreshSaltAppState extends State<FreshSaltApp> {
       return AppRouter.home;
     }
 
-    final normalized = fragment.startsWith('/')
-        ? fragment
-        : '/$fragment';
+    final fragmentPath = fragment.split('?').first.split('#').first.trim();
+    final normalized = fragmentPath.startsWith('/')
+        ? fragmentPath
+        : '/$fragmentPath';
 
     const supportedRoutes = {
       AppRouter.home,

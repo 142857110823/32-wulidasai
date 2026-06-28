@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
@@ -219,8 +219,7 @@ class _DemoValidationPageState extends State<DemoValidationPage> {
               const SizedBox(height: 12),
               const _SectionHeader(
                 title: '覆盖范围',
-                subtitle:
-                    '验证台服务于平台闭环核对，不是孤立测试页；它必须和真实 UI 主链保持同一阶段语义。',
+                subtitle: '验证台服务于平台闭环核对，不是孤立测试页；它必须和真实 UI 主链保持同一阶段语义。',
               ),
               const SizedBox(height: 12),
               const _SectionCard(

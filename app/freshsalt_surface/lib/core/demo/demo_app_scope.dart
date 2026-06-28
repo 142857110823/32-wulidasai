@@ -1,4 +1,5 @@
 import '../export/export_service.dart';
+import '../models/capture_workflow_controller.dart';
 import '../models/model_bundle.dart';
 import '../orchestrator/freshsalt_app_orchestrator.dart';
 import '../repositories/click_validation_repository.dart';
@@ -8,6 +9,7 @@ import '../services/feature_extraction_service.dart';
 import '../services/model_bundle_service.dart';
 import '../services/prediction_service.dart';
 import '../services/quality_control_service.dart';
+import '../services/real_image_analysis_service.dart';
 import 'demo_capture_case.dart';
 
 class AppScope {
@@ -15,6 +17,7 @@ class AppScope {
     required this.modelBundleService,
     required this.qualityControlService,
     required this.featureExtractionService,
+    required this.realImageAnalysisService,
     required this.predictionService,
     required this.clickValidationRepository,
     required this.clickValidationService,
@@ -30,6 +33,7 @@ class AppScope {
   final ModelBundleService modelBundleService;
   final QualityControlService qualityControlService;
   final FeatureExtractionService featureExtractionService;
+  final RealImageAnalysisService realImageAnalysisService;
   final PredictionService predictionService;
   final InMemoryClickValidationRepository clickValidationRepository;
   final ClickValidationService clickValidationService;
@@ -40,6 +44,7 @@ class AppScope {
   String _hardwareProfileLabel;
   final List<DemoCaptureCase> demoCaptureCases;
   final Map<String, dynamic>? demoRoiPolygon;
+  CaptureWorkflowController? captureWorkflowController;
 
   String get hardwareProfileLabel => _hardwareProfileLabel;
 
@@ -47,6 +52,7 @@ class AppScope {
     final modelBundleService = ModelBundleService();
     final qualityControlService = QualityControlService();
     final featureExtractionService = FeatureExtractionService();
+    final realImageAnalysisService = RealImageAnalysisService();
     final predictionService = PredictionService();
     final clickValidationRepository = InMemoryClickValidationRepository();
     final clickValidationService = ClickValidationService(
@@ -68,6 +74,7 @@ class AppScope {
       modelBundleService: modelBundleService,
       qualityControlService: qualityControlService,
       featureExtractionService: featureExtractionService,
+      realImageAnalysisService: realImageAnalysisService,
       predictionService: predictionService,
       clickValidationRepository: clickValidationRepository,
       clickValidationService: clickValidationService,
@@ -96,6 +103,7 @@ class AppScope {
       modelBundleService: scope.modelBundleService,
       qualityControlService: scope.qualityControlService,
       featureExtractionService: scope.featureExtractionService,
+      realImageAnalysisService: scope.realImageAnalysisService,
       predictionService: scope.predictionService,
       clickValidationRepository: scope.clickValidationRepository,
       clickValidationService: scope.clickValidationService,

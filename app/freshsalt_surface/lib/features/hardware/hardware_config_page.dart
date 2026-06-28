@@ -31,7 +31,8 @@ class _HardwareConfigPageState extends State<HardwareConfigPage> {
     return PlatformModuleShell(
       appBarTitle: '硬件配置',
       title: '硬件配置与匹配检查',
-      subtitle: '当前模块负责展示演示硬件配置、匹配状态和异常配置切换，用来支撑平台主链中的“模型包与硬件是否就绪”判断，而不是只做单行配置列表。',
+      subtitle:
+          '当前模块负责展示演示硬件配置、匹配状态和异常配置切换，用来支撑平台主链中的“模型包与硬件是否就绪”判断，而不是只做单行配置列表。',
       tags: [
         '模拟数据',
         '演示模式',
@@ -57,7 +58,7 @@ class _HardwareConfigPageState extends State<HardwareConfigPage> {
                   : '不匹配',
           note: matchesModel
               ? '当前配置可用于演示推理与结果保存。'
-              : '不匹配配置只适合作为异常演示。', 
+              : '不匹配配置只适合作为异常演示。',
         ),
       ],
       children: [

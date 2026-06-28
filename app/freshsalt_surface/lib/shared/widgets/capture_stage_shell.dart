@@ -25,17 +25,20 @@ class CaptureStageShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final compact = MediaQuery.sizeOf(context).height < 700;
+    final summaryMetrics = metrics.take(2).toList(growable: false);
+    final showSummary =
+        summaryMetrics.isNotEmpty && MediaQuery.sizeOf(context).width >= 900;
 
     return Scaffold(
       appBar: AppBar(title: Text(appBarTitle)),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
           children: [
             Container(
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(26),
                 gradient: const LinearGradient(
                   colors: [Color(0xFFE7F4F1), Color(0xFFF9FCFB)],
                   begin: Alignment.topLeft,
@@ -43,74 +46,77 @@ class CaptureStageShell extends StatelessWidget {
                 ),
                 border: Border.all(color: theme.colorScheme.outlineVariant),
               ),
-              padding: const EdgeInsets.all(18),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= 720;
-                  final intro = Column(
+                  final header = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
-                        style: theme.textTheme.headlineMedium?.copyWith(
+                        style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 6),
                       Text(
                         subtitle,
-                        maxLines: compact ? 2 : null,
-                        overflow: compact ? TextOverflow.ellipsis : null,
-                        style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
+                        maxLines: showSummary ? 2 : 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          Chip(label: Text(stageLabel)),
-                          Chip(label: Text(stageTitle)),
-                          ...(compact ? tags.take(1) : tags)
-                              .map((tag) => Chip(label: Text(tag))),
+                          Chip(
+                            visualDensity: VisualDensity.compact,
+                            label: Text(stageLabel),
+                          ),
+                          Chip(
+                            visualDensity: VisualDensity.compact,
+                            label: Text(stageTitle),
+                          ),
+                          ...tags
+                              .where((tag) => tag.trim().isNotEmpty)
+                              .take(showSummary ? 2 : 3)
+                              .map(
+                                (tag) => Chip(
+                                  visualDensity: VisualDensity.compact,
+                                  label: Text(tag),
+                                ),
+                              ),
                         ],
                       ),
                     ],
                   );
 
-                  final status = _StageStatusPanel(
-                    stageLabel: stageLabel,
-                    stageTitle: stageTitle,
-                    metrics: metrics,
-                  );
-
-                  if (compact) {
-                    return intro;
-                  }
-
-                  if (!wide) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        intro,
-                      const SizedBox(height: 12),
-                      status,
-                    ],
-                  );
+                  if (!showSummary) {
+                    return header;
                   }
 
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 7, child: intro),
-                      const SizedBox(width: 18),
-                      Expanded(flex: 5, child: status),
+                      Expanded(flex: 7, child: header),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        flex: 5,
+                        child: _StageSummaryCard(
+                          stageLabel: stageLabel,
+                          stageTitle: stageTitle,
+                          metrics: summaryMetrics,
+                        ),
+                      ),
                     ],
                   );
                 },
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
             ..._withSpacing(children),
           ],
         ),
@@ -178,7 +184,7 @@ class CaptureStageSectionCard extends StatelessWidget {
                   ),
                 ),
                 if (trailing != null) ...[
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   trailing!,
                 ],
               ],
@@ -192,8 +198,8 @@ class CaptureStageSectionCard extends StatelessWidget {
   }
 }
 
-class _StageStatusPanel extends StatelessWidget {
-  const _StageStatusPanel({
+class _StageSummaryCard extends StatelessWidget {
+  const _StageSummaryCard({
     required this.stageLabel,
     required this.stageTitle,
     required this.metrics,
@@ -205,31 +211,33 @@ class _StageStatusPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.82),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        color: Colors.white.withOpacity(0.84),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '阶段摘要',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           _MetricRow(label: '当前阶段', value: stageTitle),
-          const Divider(height: 24),
+          const Divider(height: 18),
           _MetricRow(label: '阶段编号', value: stageLabel),
           for (final metric in metrics) ...[
-            const Divider(height: 24),
-            _MetricRow(label: metric.label, value: metric.value, note: metric.note),
+            const Divider(height: 18),
+            _MetricRow(
+              label: metric.label,
+              value: metric.value,
+              note: metric.note,
+            ),
           ],
         ],
       ),
@@ -259,7 +267,7 @@ class _MetricRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 76,
+              width: 72,
               child: Text(
                 label,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -271,19 +279,19 @@ class _MetricRow extends StatelessWidget {
               child: Text(
                 value,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ),
           ],
         ),
-        if (note != null) ...[
-          const SizedBox(height: 6),
+        if (note != null && note!.isNotEmpty) ...[
+          const SizedBox(height: 4),
           Text(
             note!,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
-              height: 1.4,
+              height: 1.35,
             ),
           ),
         ],

@@ -1,5 +1,6 @@
 import '../demo/demo_capture_case.dart';
 import 'capture_workflow_state.dart';
+import 'dart:typed_data';
 import 'feature_vector.dart';
 import 'prediction_result.dart';
 import 'quality_control_result.dart';
@@ -7,16 +8,29 @@ import 'quality_control_result.dart';
 class CaptureWorkflowController {
   CaptureWorkflowController({
     DemoCaptureCase? selectedCase,
-  }) : _selectedCase = selectedCase;
+    Map<String, dynamic>? initialRoiPolygon,
+  })  : _selectedCase = selectedCase,
+        _initialRoiPolygon = initialRoiPolygon == null
+            ? null
+            : Map<String, dynamic>.from(initialRoiPolygon),
+        _roiPolygon = initialRoiPolygon == null
+            ? null
+            : Map<String, dynamic>.from(initialRoiPolygon);
 
   DemoCaptureCase? _selectedCase;
+  final Map<String, dynamic>? _initialRoiPolygon;
   QualityControlResult? _qualityControlResult;
   FeatureVector? _featureVector;
   PredictionResult? _predictionResult;
   String? _sessionId;
   String? _baselineImagePath;
   String? _saltedImagePath;
+  Uint8List? _baselineImageBytes;
+  Uint8List? _saltedImageBytes;
+  bool _baselineUsesSimulatedSource = true;
+  bool _saltedUsesSimulatedSource = true;
   bool _roiConfirmed = false;
+  Map<String, dynamic>? _roiPolygon;
   bool _saved = false;
   Map<String, dynamic>? _pendingSavePayload;
 
@@ -27,6 +41,14 @@ class CaptureWorkflowController {
   String? get sessionId => _sessionId;
   String? get baselineImagePath => _baselineImagePath;
   String? get saltedImagePath => _saltedImagePath;
+  Uint8List? get baselineImageBytes => _baselineImageBytes;
+  Uint8List? get saltedImageBytes => _saltedImageBytes;
+  bool get baselineUsesSimulatedSource => _baselineUsesSimulatedSource;
+  bool get saltedUsesSimulatedSource => _saltedUsesSimulatedSource;
+  Map<String, dynamic>? get roiPolygon => _roiPolygon;
+  bool get hasImportedRealImages =>
+      (_baselineImagePath != null && !_baselineUsesSimulatedSource) ||
+      (_saltedImagePath != null && !_saltedUsesSimulatedSource);
   bool get roiConfirmed => _roiConfirmed;
   bool get saved => _saved;
   Map<String, dynamic>? get pendingSavePayload => _pendingSavePayload;
@@ -52,7 +74,14 @@ class CaptureWorkflowController {
     _sessionId = null;
     _baselineImagePath = null;
     _saltedImagePath = null;
+    _baselineImageBytes = null;
+    _saltedImageBytes = null;
+    _baselineUsesSimulatedSource = true;
+    _saltedUsesSimulatedSource = true;
     _roiConfirmed = false;
+    _roiPolygon = _initialRoiPolygon == null
+        ? null
+        : Map<String, dynamic>.from(_initialRoiPolygon);
     _saved = false;
     _pendingSavePayload = null;
   }
@@ -64,22 +93,41 @@ class CaptureWorkflowController {
       _predictionResult = null;
       _saved = false;
       _pendingSavePayload = null;
-      _baselineImagePath = null;
-      _saltedImagePath = null;
       _roiConfirmed = false;
     }
   }
 
-  void useBaselineImage(String? path) {
+  void useBaselineImage(
+    String? path, {
+    bool isSimulated = true,
+    Uint8List? imageBytes,
+  }) {
     _baselineImagePath = path;
+    _baselineImageBytes = imageBytes;
+    _baselineUsesSimulatedSource = isSimulated;
   }
 
-  void useSaltedImage(String? path) {
+  void useSaltedImage(
+    String? path, {
+    bool isSimulated = true,
+    Uint8List? imageBytes,
+  }) {
     _saltedImagePath = path;
+    _saltedImageBytes = imageBytes;
+    _saltedUsesSimulatedSource = isSimulated;
   }
 
   void confirmRoi() {
     _roiConfirmed = true;
+  }
+
+  void updateRoiPolygon(Map<String, dynamic> roiPolygon) {
+    _roiPolygon = Map<String, dynamic>.from(roiPolygon);
+    _roiConfirmed = false;
+    _featureVector = null;
+    _predictionResult = null;
+    _saved = false;
+    _pendingSavePayload = null;
   }
 
   void clearPredictionOutputs() {

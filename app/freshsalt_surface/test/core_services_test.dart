@@ -1,3 +1,7 @@
+import 'dart:io';
+import 'dart:math' as math;
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:freshsalt_surface/core/export/export_service.dart';
 import 'package:freshsalt_surface/core/models/capture_workflow_controller.dart';
@@ -10,6 +14,8 @@ import 'package:freshsalt_surface/core/services/feature_extraction_service.dart'
 import 'package:freshsalt_surface/core/services/model_bundle_service.dart';
 import 'package:freshsalt_surface/core/services/prediction_service.dart';
 import 'package:freshsalt_surface/core/services/quality_control_service.dart';
+import 'package:freshsalt_surface/core/services/real_image_analysis_service.dart';
+import 'package:image/image.dart' as img;
 
 import 'support/demo_fixtures.dart';
 
@@ -455,4 +461,184 @@ void main() {
       expect(controller.workflowState.currentStage, equals(5));
     });
   });
+  group('real image analysis service', () {
+    late RealImageAnalysisService service;
+
+    setUp(() {
+      service = RealImageAnalysisService();
+    });
+
+    test('can decode PNG bytes and emit pixel-level QC metrics', () async {
+      final bytes = _buildPngBytes(
+        width: 120,
+        height: 80,
+        fill: const [110, 126, 104],
+        grayCard: const [125, 125, 125],
+      );
+
+      final result = await service.performQualityControl(imageBytes: bytes);
+
+      expect(result.metrics['source_mode'], equals('real_image_pixels'));
+      expect(result.metrics['exposure_saturation_ratio'], isA<double>());
+      expect(result.metrics['laplacian_variance'], isA<double>());
+      expect(result.metrics['gray_card_rsd'], isA<double>());
+    });
+
+    test('can extract features from decoded baseline and salted images', () async {
+      final baselineBytes = _buildPngBytes(
+        width: 120,
+        height: 80,
+        fill: const [90, 110, 88],
+        grayCard: const [125, 125, 125],
+      );
+      final saltedBytes = _buildPngBytes(
+        width: 120,
+        height: 80,
+        fill: const [170, 176, 162],
+        grayCard: const [125, 125, 125],
+      );
+
+      final featureVector = await service.extractFeatures(
+        sessionId: 'real_feature_session',
+        baselineImageBytes: baselineBytes,
+        saltedImageBytes: saltedBytes,
+      );
+
+      expect(featureVector.isValid, isTrue);
+      expect(featureVector.features.length, equals(10));
+      expect(
+        featureVector.metadata['extraction_method'],
+        equals('real_image_pixels'),
+      );
+      expect(featureVector.features['dL'], isNotNull);
+    });
+
+    test('invalid image bytes are rejected', () async {
+      expect(
+        () => service.performQualityControl(
+          imageBytes: Uint8List.fromList(const [1, 2, 3]),
+        ),
+        throwsA(anything),
+      );
+    });
+
+    test('workspace real sample PNG files can drive QC and feature extraction', () async {
+      final workspaceRoot = Directory.current.parent.parent.path;
+      final baselineFile = File(
+        '$workspaceRoot/原始数据-光栅/-对照-0.png',
+      );
+      final saltedFile = File(
+        '$workspaceRoot/原始数据-光栅/盐浓度2.0mgL-0.png',
+      );
+
+      expect(await baselineFile.exists(), isTrue);
+      expect(await saltedFile.exists(), isTrue);
+
+      final baselineBytes = await baselineFile.readAsBytes();
+      final saltedBytes = await saltedFile.readAsBytes();
+
+      final qc = await service.performQualityControl(
+        imageBytes: baselineBytes,
+      );
+      final featureVector = await service.extractFeatures(
+        sessionId: 'workspace_real_sample_session',
+        baselineImageBytes: baselineBytes,
+        saltedImageBytes: saltedBytes,
+      );
+
+      expect(qc.metrics['source_mode'], equals('real_image_pixels'));
+      expect(featureVector.isValid, isTrue);
+      expect(
+        featureVector.metadata['extraction_method'],
+        equals('real_image_pixels'),
+      );
+    });
+  });
+
+  group('real image import guardrails', () {
+    test('real imported image paths are tracked as non-simulated sources', () {
+      final controller = CaptureWorkflowController(
+        selectedCase: demoCaptureCases.first,
+      );
+
+      controller.useBaselineImage(
+        'user://baseline_real.png',
+        isSimulated: false,
+      );
+      controller.useSaltedImage(
+        'user://salted_real.png',
+        isSimulated: false,
+      );
+
+      expect(controller.baselineImagePath, equals('user://baseline_real.png'));
+      expect(controller.saltedImagePath, equals('user://salted_real.png'));
+      expect(controller.baselineUsesSimulatedSource, isFalse);
+      expect(controller.saltedUsesSimulatedSource, isFalse);
+      expect(controller.hasImportedRealImages, isTrue);
+    });
+
+    test('real imported image bytes are preserved on the controller', () {
+      final controller = CaptureWorkflowController(
+        selectedCase: demoCaptureCases.first,
+      );
+      final baselineBytes = Uint8List.fromList(const [1, 2, 3, 4]);
+      final saltedBytes = Uint8List.fromList(const [5, 6, 7, 8]);
+
+      controller.useBaselineImage(
+        'baseline.png',
+        isSimulated: false,
+        imageBytes: baselineBytes,
+      );
+      controller.useSaltedImage(
+        'salted.png',
+        isSimulated: false,
+        imageBytes: saltedBytes,
+      );
+
+      expect(controller.baselineImageBytes, same(baselineBytes));
+      expect(controller.saltedImageBytes, same(saltedBytes));
+    });
+  });
+}
+
+Uint8List _buildPngBytes({
+  required int width,
+  required int height,
+  required List<int> fill,
+  required List<int> grayCard,
+}) {
+  final image = img.Image(width: width, height: height);
+  img.fill(image, color: img.ColorRgb8(fill[0], fill[1], fill[2]));
+
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      final gradientOffset = (x / width * 18).round();
+      final textureOffset = ((x + y) % 7) - 3;
+      image.setPixelRgb(
+        x,
+        y,
+        (fill[0] + gradientOffset + textureOffset).clamp(0, 255),
+        (fill[1] + gradientOffset).clamp(0, 255),
+        (fill[2] + textureOffset).clamp(0, 255),
+      );
+    }
+  }
+
+  final grayStartX = width - (width ~/ 6);
+  final grayEndX = width - 4;
+  final grayEndY = math.max(8, height ~/ 6);
+  for (var y = 4; y < grayEndY; y++) {
+    for (var x = grayStartX; x < grayEndX; x++) {
+      final patchOffset = ((x + y) % 3) - 1;
+      image.setPixelRgb(
+        x,
+        y,
+        (grayCard[0] + patchOffset).clamp(0, 255),
+        (grayCard[1] + patchOffset).clamp(0, 255),
+        (grayCard[2] + patchOffset).clamp(0, 255),
+      );
+    }
+  }
+
+  return Uint8List.fromList(img.encodePng(image));
 }

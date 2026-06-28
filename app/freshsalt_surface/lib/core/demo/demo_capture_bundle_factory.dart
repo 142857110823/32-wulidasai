@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import '../models/capture_step_bundle.dart';
 import '../models/capture_workflow_controller.dart';
+import '../services/local_image_picker.dart';
 import 'demo_app_scope.dart';
 
 CaptureStepBundle buildDemoCaptureBundle(
@@ -7,15 +10,26 @@ CaptureStepBundle buildDemoCaptureBundle(
   String? initialCaseId,
 }) {
   final initialCase = _resolveInitialCase(scope, initialCaseId);
-  final controller = CaptureWorkflowController(selectedCase: initialCase);
+  final controller =
+      scope.captureWorkflowController ??
+      CaptureWorkflowController(
+        selectedCase: initialCase,
+        initialRoiPolygon: scope.demoRoiPolygon,
+      );
+  scope.captureWorkflowController ??= controller;
 
   Future<void> runQualityControl() async {
     if (initialCase == null) {
       return;
     }
-    final qc = await scope.qualityControlService.performQualityControl(
-      imageMetadata: initialCase.imageMetadata,
-    );
+
+    final qc = controller.hasImportedRealImages
+        ? await scope.realImageAnalysisService.performQualityControl(
+            imageBytes: controller.baselineImageBytes!,
+          )
+        : await scope.qualityControlService.performQualityControl(
+            imageMetadata: initialCase.imageMetadata,
+          );
     controller.applyQualityControl(qc);
   }
 
@@ -25,8 +39,45 @@ CaptureStepBundle buildDemoCaptureBundle(
       return;
     }
 
-    final sessionId = controller.sessionId ??
-        'demo_prediction_${DateTime.now().millisecondsSinceEpoch}';
+    final sessionId =
+        controller.sessionId ?? 'demo_prediction_${DateTime.now().millisecondsSinceEpoch}';
+
+    if (controller.hasImportedRealImages) {
+      final baselineBytes = controller.baselineImageBytes;
+      final saltedBytes = controller.saltedImageBytes;
+      if (baselineBytes == null || saltedBytes == null) {
+        return;
+      }
+
+      final featureVector = await scope.realImageAnalysisService.extractFeatures(
+        sessionId: sessionId,
+        baselineImageBytes: baselineBytes,
+        saltedImageBytes: saltedBytes,
+      );
+      final prediction = await scope.predictionService.predict(
+        sessionId: sessionId,
+        sampleId: initialCase?.sampleId ?? 'real_image_import',
+        featureVector: featureVector,
+        modelBundle: activeModel,
+        hardwareProfileId: scope.hardwareProfileLabel,
+        sourceMode: 'real_image_pixels',
+      );
+
+      controller.applyPrediction(
+        sessionId: sessionId,
+        featureVector: featureVector,
+        predictionResult: prediction,
+        pendingSavePayload: {
+          'session_id': sessionId,
+          'sample_id': initialCase?.sampleId ?? 'real_image_import',
+          'baseline_image_path': controller.baselineImagePath!,
+          'salted_image_path': controller.saltedImagePath!,
+          'roi_polygon': controller.roiPolygon ?? const <String, dynamic>{},
+        },
+      );
+      return;
+    }
+
     final featureVector = await scope.featureExtractionService.extractFeatures(
       sessionId: sessionId,
       imageMetadata: initialCase.imageMetadata,
@@ -52,7 +103,7 @@ CaptureStepBundle buildDemoCaptureBundle(
             controller.baselineImagePath ?? initialCase.baselineImagePath,
         'salted_image_path':
             controller.saltedImagePath ?? initialCase.saltedImagePath,
-        'roi_polygon': scope.demoRoiPolygon ?? const <String, dynamic>{},
+        'roi_polygon': controller.roiPolygon ?? const <String, dynamic>{},
       },
     );
   }
@@ -64,14 +115,40 @@ CaptureStepBundle buildDemoCaptureBundle(
 
     final sessionId =
         controller.sessionId ?? 'demo_feature_${DateTime.now().millisecondsSinceEpoch}';
-    final featureVector = await scope.featureExtractionService.extractFeatures(
-      sessionId: sessionId,
-      imageMetadata: initialCase.imageMetadata,
-      differenceImagePath: '/mock/demo_feature_diff.png',
-    );
+    final featureVector = controller.hasImportedRealImages
+        ? await scope.realImageAnalysisService.extractFeatures(
+            sessionId: sessionId,
+            baselineImageBytes: controller.baselineImageBytes!,
+            saltedImageBytes: controller.saltedImageBytes!,
+          )
+        : await scope.featureExtractionService.extractFeatures(
+            sessionId: sessionId,
+            imageMetadata: initialCase.imageMetadata,
+            differenceImagePath: '/mock/demo_feature_diff.png',
+          );
     controller.applyFeatureVector(
       sessionId: sessionId,
       featureVector: featureVector,
+    );
+  }
+
+  Future<void> importBaselineImage() async {
+    await _pickImage(
+      onSelected: (displayPath, bytes) => controller.useBaselineImage(
+        displayPath,
+        isSimulated: false,
+        imageBytes: bytes,
+      ),
+    );
+  }
+
+  Future<void> importSaltedImage() async {
+    await _pickImage(
+      onSelected: (displayPath, bytes) => controller.useSaltedImage(
+        displayPath,
+        isSimulated: false,
+        imageBytes: bytes,
+      ),
     );
   }
 
@@ -101,7 +178,7 @@ CaptureStepBundle buildDemoCaptureBundle(
     controller: controller,
     baselineImagePath: initialCase?.baselineImagePath,
     saltedImagePath: initialCase?.saltedImagePath,
-    roiPolygon: scope.demoRoiPolygon,
+    roiPolygon: controller.roiPolygon,
     runQualityControl: runQualityControl,
     useBaselineImage: () => controller.useBaselineImage(
       initialCase?.baselineImagePath,
@@ -109,11 +186,29 @@ CaptureStepBundle buildDemoCaptureBundle(
     useSaltedImage: () => controller.useSaltedImage(
       initialCase?.saltedImagePath,
     ),
+    importBaselineImage: importBaselineImage,
+    importSaltedImage: importSaltedImage,
     confirmRoi: controller.confirmRoi,
+    updateRoiPolygon: controller.updateRoiPolygon,
     runFeatureExtraction: runFeatureExtraction,
     runPredictionWorkflow: runPredictionWorkflow,
     saveSession: saveSession,
   );
+}
+
+Future<void> _pickImage({
+  required void Function(String displayPath, Uint8List bytes) onSelected,
+}) async {
+  final picked = await LocalImagePicker.pickImage();
+  if (picked == null) {
+    return;
+  }
+
+  if (picked.bytes.isEmpty || picked.displayPath.isEmpty) {
+    return;
+  }
+
+  onSelected(picked.displayPath, picked.bytes);
 }
 
 dynamic _resolveInitialCase(AppScope scope, String? initialCaseId) {

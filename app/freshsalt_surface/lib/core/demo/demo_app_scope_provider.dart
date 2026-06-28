@@ -18,6 +18,12 @@ class DemoAppScopeProvider extends InheritedWidget {
     return provider!.scope;
   }
 
+  static AppScope? maybeOf(BuildContext context) {
+    final provider =
+        context.dependOnInheritedWidgetOfExactType<DemoAppScopeProvider>();
+    return provider?.scope;
+  }
+
   @override
   bool updateShouldNotify(DemoAppScopeProvider oldWidget) {
     return oldWidget.scope != scope;

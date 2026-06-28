@@ -41,7 +41,7 @@ class ModuleScaffold extends StatelessWidget {
                       Text(description, style: theme.textTheme.bodyMedium),
                       const SizedBox(height: 12),
                       Text(
-                        '本结果仅用于大学物理实验与方法验证，不作为食品安全、商品分级或执法检测依据。',
+                        '当前页面用于流程演示、结果回看或功能验证，不提供执法、医疗或食品安全性质结论。',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

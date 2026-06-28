@@ -12,34 +12,34 @@ class SettingsPage extends StatelessWidget {
     final activeModel = scope.modelBundleService.activeModel;
 
     return PlatformModuleShell(
-      appBarTitle: '设置与权限',
-      title: '设置与权限',
-      subtitle: '当前模块负责集中展示运行模式、权限占位、单位规范和平台边界说明，让用户明确这是一套实验测量型平台，而不是营销页或通用检测工具。',
+      appBarTitle: '设置与说明',
+      title: '设置与说明',
+      subtitle: '统一查看当前运行模式、单位规范、设备配置和使用边界。',
       tags: [
-        scope.isDemoMode ? '演示模式' : '非演示模式',
+        scope.isDemoMode ? '演示模式' : '普通模式',
         '模拟数据',
         scope.hardwareProfileLabel,
       ],
       summaryItems: [
         PlatformSummaryItem(
           label: '模式',
-          value: scope.isDemoMode ? '演示模式' : '非演示模式',
-          note: '当前预览默认通过平台工作台进入演示环境。',
+          value: scope.isDemoMode ? '演示模式' : '普通模式',
+          note: '当前页面用于说明平台状态，不承载采集主操作。',
         ),
         PlatformSummaryItem(
           label: '模型',
           value: activeModel?.modelId ?? '未启用',
-          note: activeModel == null ? '当前缺少模型包。' : '平台结果页、历史页和报告页会沿用该模型上下文。',
+          note: activeModel == null ? '当前没有可用模型。' : '结果页、历史页和报告页会沿用该模型上下文。',
         ),
         const PlatformSummaryItem(
           label: '边界',
-          value: '实验验证',
-          note: '本应用仅用于大学物理实验与方法验证，不作为食品安全、商品分级或执法检测依据。',
+          value: '图像测量辅助',
+          note: '本应用用于图像测量与过程辅助，不提供安全、执法或商业判定。',
         ),
       ],
       children: [
         PlatformSectionCard(
-          title: '当前运行状态',
+          title: '当前状态',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -47,31 +47,31 @@ class SettingsPage extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  Chip(label: Text(scope.isDemoMode ? '演示模式' : '非演示模式')),
+                  Chip(label: Text(scope.isDemoMode ? '演示模式' : '普通模式')),
                   const Chip(label: Text('模拟数据')),
                   Chip(label: Text(scope.hardwareProfileLabel)),
                 ],
               ),
               const SizedBox(height: 12),
               const Text(
-                '所有记录、报告和结果都必须持续显示“模拟数据”标记，结果单位统一为 mg/cm2 NaCl eq.',
+                '所有记录、报告和结果都应持续显示“模拟数据”标记，结果单位统一为 mg/cm2 NaCl eq.',
               ),
             ],
           ),
         ),
         const PlatformSectionCard(
-          title: '权限与接入占位',
+          title: '权限与接入',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _SettingsRow(
                 title: '相机权限',
-                subtitle: '真实相机采集接入前保留，当前演示模式无需授权。',
+                subtitle: '用于后续真实拍摄接入，当前版本以图片导入为主。',
               ),
               SizedBox(height: 12),
               _SettingsRow(
                 title: '文件权限',
-                subtitle: '后续用于真实图像导入和报告导出，当前仅展示占位说明。',
+                subtitle: '用于导入图片与导出报告。',
               ),
             ],
           ),
@@ -82,32 +82,32 @@ class SettingsPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _SettingsRow(
-                title: '模拟模式',
-                subtitle: scope.isDemoMode ? '当前为演示模式。' : '当前未进入演示模式。',
+                title: '当前模式',
+                subtitle: scope.isDemoMode ? '演示模式' : '普通模式',
               ),
               const SizedBox(height: 12),
               const _SettingsRow(
-                title: '单位说明',
-                subtitle: '所有结果统一显示 mg/cm2 NaCl eq.',
+                title: '结果单位',
+                subtitle: '统一显示为 mg/cm2 NaCl eq.',
               ),
               const SizedBox(height: 12),
               _SettingsRow(
                 title: '当前模型',
-                subtitle: activeModel?.modelId ?? '当前未启用模型包。',
+                subtitle: activeModel?.modelId ?? '当前未启用模型。',
               ),
               const SizedBox(height: 12),
               _SettingsRow(
-                title: '当前硬件',
+                title: '当前设备',
                 subtitle: scope.hardwareProfileLabel,
               ),
             ],
           ),
         ),
         const PlatformSectionCard(
-          title: '平台边界',
+          title: '使用边界',
           child: _SettingsRow(
-            title: '风险说明',
-            subtitle: '本应用仅用于大学物理实验与方法验证，不作为食品安全、商品分级或执法检测依据。',
+            title: '说明',
+            subtitle: '本应用用于图像测量辅助与流程记录，不输出执法、医疗或安全定性结论。',
           ),
         ),
       ],

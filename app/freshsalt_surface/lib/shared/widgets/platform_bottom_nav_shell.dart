@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../features/demo_validation/demo_validation_page.dart';
 import '../../features/history/history_page.dart';
 import '../../features/home/home_page.dart';
 import '../../features/report/report_page.dart';
@@ -22,7 +21,6 @@ class PlatformBottomNavShell extends StatelessWidget {
     AppRouter.result,
     AppRouter.history,
     AppRouter.report,
-    AppRouter.demoValidation,
   ];
 
   int get _currentIndex {
@@ -39,17 +37,21 @@ class PlatformBottomNavShell extends StatelessWidget {
           embedInShell: true,
         );
       case AppRouter.history:
-        return const HistoryPage(key: ValueKey('tab-history'), embedInShell: true);
+        return const HistoryPage(
+          key: ValueKey('tab-history'),
+          embedInShell: true,
+        );
       case AppRouter.report:
-        return const ReportPage(key: ValueKey('tab-report'), embedInShell: true);
-      case AppRouter.demoValidation:
-        return const DemoValidationPage(
-          key: ValueKey('tab-demo-validation'),
+        return const ReportPage(
+          key: ValueKey('tab-report'),
           embedInShell: true,
         );
       case AppRouter.home:
       default:
-        return const HomePage(key: ValueKey('tab-home'), embedInShell: true);
+        return const HomePage(
+          key: ValueKey('tab-home'),
+          embedInShell: true,
+        );
     }
   }
 
@@ -91,23 +93,21 @@ class _PlatformBottomNavBar extends StatelessWidget {
       ('结果', Icons.show_chart_outlined),
       ('历史', Icons.history),
       ('报告', Icons.description_outlined),
-      ('验证', Icons.rule_folder_outlined),
     ];
 
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+        padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x12000000),
-                blurRadius: 16,
+                blurRadius: 18,
                 offset: Offset(0, 8),
               ),
             ],
@@ -117,16 +117,17 @@ class _PlatformBottomNavBar extends StatelessWidget {
               final selected = index == currentIndex;
               return Expanded(
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   onTap: () => onTap(index),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 38,
-                          height: 28,
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          width: 40,
+                          height: 30,
                           decoration: BoxDecoration(
                             color: selected
                                 ? const Color(0xFFDFF3EC)
@@ -147,7 +148,8 @@ class _PlatformBottomNavBar extends StatelessWidget {
                             color: selected
                                 ? theme.colorScheme.primary
                                 : theme.colorScheme.onSurfaceVariant,
-                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                            fontWeight:
+                                selected ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
                       ],

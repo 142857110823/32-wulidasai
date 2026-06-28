@@ -36,50 +36,48 @@ class _PredictionPageState extends State<PredictionPage> {
         !(controller?.saved ?? false) &&
         !_saving;
     final alreadySaved = controller?.saved ?? false;
-    final selectedCase = controller?.selectedCase;
+    final statusText = prediction == null
+        ? '待计算'
+        : alreadySaved
+            ? '已保存'
+            : '待保存';
 
     return CaptureStageShell(
       appBarTitle: '结果计算',
       title: '结果计算',
-      subtitle: '在本阶段完成模型推理、结果确认与显式保存，保存后才进入结果详情、历史与报告模块。',
+      subtitle: '这里只展示当前真实计算状态，不再预填任何模拟结果。',
       stageLabel: alreadySaved ? '7 / 7' : '6 / 7',
       stageTitle: alreadySaved ? '保存完成' : '预测与保存',
       tags: [
-        '模拟数据',
-        if (selectedCase != null) selectedCase.sampleId,
         if (workflowState != null) '阶段 ${workflowState.currentStage}',
+        if (prediction != null) prediction.sourceMode,
       ],
       metrics: [
         CaptureStageMetric(
-          label: '样品',
-          value: selectedCase?.sampleId ?? '未绑定',
-          note: selectedCase?.title ?? '当前阶段负责形成 prediction_result 与历史记录。',
+          label: '当前结果',
+          value: prediction == null
+              ? '未生成'
+              : '${prediction.predictedValue.toStringAsFixed(3)} ${prediction.unit}',
+          note: prediction == null ? '先运行计算流程' : '结果生成后可进入详情页',
         ),
         CaptureStageMetric(
-          label: '结果',
-          value: prediction == null
-              ? '待计算'
-              : '${prediction.predictedValue.toStringAsFixed(3)} ${prediction.unit}',
-          note: prediction == null ? '需要先运行演示预测。' : '保存后再进入结果详情。',
+          label: '保存状态',
+          value: statusText,
+          note: alreadySaved ? '已写入历史记录' : '结果仍停留在当前流程中',
         ),
       ],
       children: [
         CaptureStageSectionCard(
-          title: '当前阶段主操作',
+          title: '当前操作',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 prediction == null
-                    ? '请先在本页完成演示预测，再进入保存与结果详情。'
+                    ? '当前还没有真实计算结果。请先运行结果计算。'
                     : alreadySaved
-                        ? '当前结果已保存，可直接查看结果详情。'
-                        : '当前结果已生成，请先保存到历史。',
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '完成保存后可查看结果详情。',
-                style: Theme.of(context).textTheme.bodySmall,
+                        ? '当前结果已经保存，可以直接打开结果详情页。'
+                        : '当前结果已经生成，但还没有写入历史记录。',
               ),
               const SizedBox(height: 12),
               if (prediction == null)
@@ -87,7 +85,7 @@ class _PredictionPageState extends State<PredictionPage> {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: canRunPrediction ? _runPrediction : null,
-                    child: Text(_running ? '运行中...' : '开始演示预测'),
+                    child: Text(_running ? '计算中...' : '开始结果计算'),
                   ),
                 )
               else if (!alreadySaved)
@@ -114,30 +112,53 @@ class _PredictionPageState extends State<PredictionPage> {
           ),
         ),
         CaptureStageSectionCard(
-          title: '结果摘要',
-          trailing: Chip(
-            label: Text(
-              prediction == null
-                  ? '待计算'
-                  : alreadySaved
-                      ? '已保存到历史'
-                      : '待保存',
-            ),
-          ),
+          title: '结果概览',
+          trailing: Chip(label: Text(statusText)),
           child: prediction == null
-              ? const Text('尚未计算结果，请先执行当前阶段的演示预测动作。')
+              ? const Text('未运行前不展示默认数值。完成 I0、I1、ROI 与特征流程后，再在此生成真实结果。')
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${prediction.predictedValue.toStringAsFixed(4)} ${prediction.unit}',
+                      prediction.predictedValue.toStringAsFixed(4),
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(prediction.unit),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        _PredictionMetaCard(
+                          label: '结果状态',
+                          value: prediction.resultStatus,
+                        ),
+                        _PredictionMetaCard(
+                          label: '置信等级',
+                          value: prediction.confidenceLevel,
+                        ),
+                        _PredictionMetaCard(
+                          label: '数据来源',
+                          value: prediction.sourceMode,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
-                    Text('结果状态: ${prediction.resultStatus}'),
-                    Text('置信等级: ${prediction.confidenceLevel}'),
-                    const SizedBox(height: 12),
-                    if (!alreadySaved) const Text('请使用上方当前阶段主操作完成保存。'),
-                    ...prediction.warnings.map((item) => Text('• $item')),
+                    Text(
+                      '有效范围: ${prediction.validRangeMin.toStringAsFixed(2)} - ${prediction.validRangeMax.toStringAsFixed(2)} ${prediction.unit}',
+                    ),
+                    if (prediction.warnings.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      ...prediction.warnings.map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text('• $item'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
         ),
@@ -146,7 +167,7 @@ class _PredictionPageState extends State<PredictionPage> {
           child: CaptureStageNavigation(
             previousLabel: '上一步：特征预览',
             previousAction: () => Navigator.of(context).pop(),
-            nextLabel: alreadySaved ? '下一步：查看结果详情' : '下一步：返回采集页保存',
+            nextLabel: alreadySaved ? '下一步：结果详情' : '下一步：返回采集流程',
             nextAction: alreadySaved
                 ? () => Navigator.of(context).pushNamed(
                       AppRouter.result,
@@ -195,5 +216,41 @@ class _PredictionPageState extends State<PredictionPage> {
     setState(() {
       _saving = false;
     });
+  }
+}
+
+class _PredictionMetaCard extends StatelessWidget {
+  const _PredictionMetaCard({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 132,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

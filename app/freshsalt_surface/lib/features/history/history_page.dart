@@ -42,36 +42,35 @@ class _HistoryPageState extends State<HistoryPage> {
             .toList()
           ..sort();
 
-        final latestSampleId = sessions.isEmpty
-            ? '暂无记录'
-            : sessions.first['sample_id'] as String? ?? '未知样品';
+        final latestSession = sessions.isEmpty ? null : sessions.first;
+        final latestSampleId =
+            latestSession?['sample_id'] as String? ?? '暂无记录';
 
         final shell = PlatformModuleShell(
           appBarTitle: '历史记录',
-          title: '历史记录与结果回看',
-          subtitle:
-              '在这里回看已保存结果，快速进入结果、分析与报告链路。',
-          tags: const ['模拟数据', '结果仓', '平台模块'],
+          title: '历史记录与回看',
+          subtitle: '集中查看已保存结果，快速回到结果详情、分析或报告。',
+          tags: const ['模拟数据', '结果回看', '连续记录'],
           summaryItems: [
             PlatformSummaryItem(
               label: '记录数',
               value: '${sessions.length} 条',
-              note: '当前可回看的记录数量。',
+              note: '当前筛选条件下可查看的记录总数。',
             ),
             PlatformSummaryItem(
               label: '筛选',
-              value: _showSimulatedOnly ? '模拟数据' : '全部记录',
+              value: _showSimulatedOnly ? '仅看模拟' : '查看全部',
               note: _selectedModelId ?? '未限定模型',
             ),
             PlatformSummaryItem(
               label: '最近样品',
               value: latestSampleId,
-              note: '可直接跳转到结果与报告。',
+              note: '可直接进入结果详情或报告页面。',
             ),
           ],
           children: [
             PlatformSectionCard(
-              title: '筛选与模块动作',
+              title: '主操作',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -92,15 +91,16 @@ class _HistoryPageState extends State<HistoryPage> {
                   ),
                   const SizedBox(height: 12),
                   Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
+                    spacing: 10,
+                    runSpacing: 10,
                     children: [
                       FilledButton.icon(
                         onPressed: sessions.isEmpty
                             ? null
                             : () => Navigator.of(context).pushNamed(
                                   AppRouter.result,
-                                  arguments: sessions.first['session_id'] as String?,
+                                  arguments:
+                                      sessions.first['session_id'] as String?,
                                 ),
                         icon: const Icon(Icons.open_in_new),
                         label: const Text('打开最近结果'),
@@ -109,13 +109,13 @@ class _HistoryPageState extends State<HistoryPage> {
                         onPressed: () =>
                             Navigator.of(context).pushNamed(AppRouter.analysis),
                         icon: const Icon(Icons.insights_outlined),
-                        label: const Text('分析总览'),
+                        label: const Text('查看分析'),
                       ),
                       OutlinedButton.icon(
                         onPressed: () =>
                             Navigator.of(context).pushNamed(AppRouter.report),
                         icon: const Icon(Icons.article_outlined),
-                        label: const Text('报告页'),
+                        label: const Text('进入报告'),
                       ),
                     ],
                   ),
@@ -123,7 +123,7 @@ class _HistoryPageState extends State<HistoryPage> {
               ),
             ),
             PlatformSectionCard(
-              title: '记录概览',
+              title: '状态摘要',
               child: Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -131,17 +131,17 @@ class _HistoryPageState extends State<HistoryPage> {
                   _MetricCard(
                     title: '记录总数',
                     value: '${sessions.length}',
-                    note: '当前筛选结果',
+                    note: '当前筛选后的可用记录。',
                   ),
                   _MetricCard(
-                    title: '当前筛选',
-                    value: _showSimulatedOnly ? '模拟数据' : '全部',
+                    title: '当前视图',
+                    value: _showSimulatedOnly ? '模拟数据' : '全部数据',
                     note: _selectedModelId ?? '未限定模型',
                   ),
                   _MetricCard(
                     title: '状态',
                     value: sessions.isEmpty ? '待生成' : '可回看',
-                    note: '支持结果详情、分析与报告联动',
+                    note: '支持结果详情、分析和报告联动。',
                   ),
                 ],
               ),
@@ -149,7 +149,7 @@ class _HistoryPageState extends State<HistoryPage> {
             PlatformSectionCard(
               title: '记录列表',
               child: sessions.isEmpty
-                  ? const Text('尚无可展示记录，请先完成一次模拟预测并保存。')
+                  ? const Text('当前没有可展示记录。请先完成一次导入或采集，再返回此处查看。')
                   : Column(
                       children: sessions.map((session) {
                         final result = PredictionResult.fromJson(
@@ -160,7 +160,8 @@ class _HistoryPageState extends State<HistoryPage> {
                         final span = result.validRangeMax - result.validRangeMin;
                         final progress = span <= 0
                             ? 0.0
-                            : ((result.predictedValue - result.validRangeMin) / span)
+                            : ((result.predictedValue - result.validRangeMin) /
+                                    span)
                                 .clamp(0.0, 1.0);
 
                         return Padding(
@@ -197,8 +198,8 @@ class _HistoryPageState extends State<HistoryPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('删除模拟记录'),
-          content: const Text('是否删除当前模拟记录？此操作只影响本地演示数据。'),
+          title: const Text('删除记录'),
+          content: const Text('是否删除当前记录？此操作只影响本地演示数据。'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -268,7 +269,7 @@ class _HistoryRecordCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      session['sample_id'] as String? ?? '未知样品',
+                      session['sample_id'] as String? ?? '未命名样品',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
@@ -314,7 +315,7 @@ class _HistoryRecordCard extends StatelessWidget {
               ),
               OutlinedButton(
                 onPressed: () => Navigator.of(context).pushNamed(AppRouter.report),
-                child: const Text('进入报告页'),
+                child: const Text('进入报告'),
               ),
             ],
           ),
@@ -379,7 +380,7 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 190,
+      width: 180,
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(16),

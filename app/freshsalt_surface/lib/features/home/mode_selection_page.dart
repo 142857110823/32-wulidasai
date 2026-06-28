@@ -33,10 +33,10 @@ class _ModeSelectionPageState extends State<ModeSelectionPage> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                Text('模式选择与边界确认', style: theme.textTheme.headlineMedium),
+                Text('选择进入方式', style: theme.textTheme.headlineMedium),
                 const SizedBox(height: 8),
                 Text(
-                  '首次进入先确认平台边界，再选择演示入口。当前默认加载模拟模型、模拟图像和模拟记录。',
+                  '先进入一个可操作入口，再继续图像采集、质控分析和结果查看。',
                   style: theme.textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 16),
@@ -46,15 +46,15 @@ class _ModeSelectionPageState extends State<ModeSelectionPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('项目边界', style: theme.textTheme.titleMedium),
+                        Text('当前说明', style: theme.textTheme.titleMedium),
                         const SizedBox(height: 10),
                         Text(
-                          '本应用仅用于大学物理实验、方法验证和平台演示，不作为食品安全、商品分级或执法性质结论输出。',
+                          '本应用面向图像采集与分析流程演示，可用于导入图片、查看质控提示、完成 ROI 选区与结果复核。',
                           style: theme.textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '当前结果均为模拟数据。后续仅替换真实暗箱实验图像和模型包，不重写主界面流程。',
+                          '当前版本默认提供内置示例数据，便于快速体验完整流程。',
                           style: theme.textTheme.bodyMedium,
                         ),
                       ],
@@ -62,42 +62,40 @@ class _ModeSelectionPageState extends State<ModeSelectionPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Text('演示入口', style: theme.textTheme.titleLarge),
+                Text('可用入口', style: theme.textTheme.titleLarge),
                 const SizedBox(height: 12),
                 _ModeEntryCard(
-                  title: '演示工作台',
-                  subtitle:
-                      '进入平台首页，查看模型状态、硬件状态、最近趋势和全部模块入口。',
-                  actionLabel: '进入演示工作台',
+                  title: '平台首页',
+                  subtitle: '查看平台总览、最近结果和主要模块入口。',
+                  actionLabel: '进入平台首页',
                   icon: Icons.dashboard_outlined,
                   enabled: !_isLoading,
                   onPressed: () => _handleEntryTap(
-                    label: '正在加载演示模式...',
+                    label: '正在进入平台首页...',
                     action: widget.onEnterDemoWorkbench,
                   ),
                 ),
                 const SizedBox(height: 12),
                 _ModeEntryCard(
-                  title: '采集预测演示',
-                  subtitle:
-                      '直接进入采集主线，按“质控 -> I0 -> I1 -> ROI -> 预测 -> 保存”完成首条演示闭环。',
-                  actionLabel: '进入采集预测',
+                  title: '采集流程',
+                  subtitle: '直接进入导入图片、质控提示、ROI 选区和结果生成流程。',
+                  actionLabel: '进入采集流程',
                   icon: Icons.play_circle_outline,
                   enabled: !_isLoading,
                   onPressed: () => _handleEntryTap(
-                    label: '正在加载采集演示...',
+                    label: '正在加载采集流程...',
                     action: widget.onEnterCaptureDemo,
                   ),
                 ),
                 const SizedBox(height: 12),
                 _ModeEntryCard(
-                  title: '点击验证台',
-                  subtitle: '进入 M01-M15 验证台，执行单条 case 或全链路模拟断言。',
-                  actionLabel: '进入点击验证台',
+                  title: '流程验证',
+                  subtitle: '查看当前流程节点与交互链路的验证记录。',
+                  actionLabel: '进入流程验证',
                   icon: Icons.fact_check_outlined,
                   enabled: !_isLoading,
                   onPressed: () => _handleEntryTap(
-                    label: '正在加载验证台...',
+                    label: '正在加载流程验证...',
                     action: widget.onEnterValidationDemo,
                   ),
                 ),

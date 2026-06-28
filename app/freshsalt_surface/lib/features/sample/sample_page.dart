@@ -16,7 +16,8 @@ class SamplePage extends StatelessWidget {
     return PlatformModuleShell(
       appBarTitle: '样品管理',
       title: '样品管理与建档',
-      subtitle: '当前使用演示样品卡管理模拟采集案例，模块要服务平台主链：查看样品、理解案例差异、带着样品上下文进入质控，而不是停留在轻量列表页。',
+      subtitle:
+          '当前使用演示样品卡管理模拟采集案例，模块要服务平台主链：查看样品、理解案例差异、带着样品上下文进入质控，而不是停留在轻量列表页。',
       tags: const ['模拟数据', '演示模式', '平台模块'],
       summaryItems: [
         PlatformSummaryItem(
@@ -138,12 +139,12 @@ class _SampleCaseCard extends StatelessWidget {
           Text(subtitle),
           const SizedBox(height: 12),
           Text(
-            '基线图 $baselinePath',
+            '基线图：$baselinePath',
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: 4),
           Text(
-            '待测图 $saltedPath',
+            '待测图：$saltedPath',
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: 14),
