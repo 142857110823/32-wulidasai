@@ -1892,3 +1892,15 @@ The execution repeatedly drifted away from the user's highest-priority requireme
   - Local dependency refresh cannot be treated as a stable clean-slate verification signal until the host pub cache issue is cleared or bypassed.
 - Handling:
   - Proceed with the smallest repository changes needed for Pages rollout, keep the pub-get crash explicitly documented, and rely on fresh build output plus browser-visible checks instead of overstating dependency-health confidence.
+
+## 2026-06-29 GitHub Pages 404 Follow-up
+
+- The first public GitHub Pages cutover did not go live even though the Flutter Web artifact built successfully
+  - Evidence:
+    - The public URL `https://142857110823.github.io/32-wulidasai/` returned the default GitHub 404 page.
+    - Repository metadata from the GitHub API showed `has_pages: false` immediately after the first push.
+    - Actions run `28350255399` completed with `build=success` and `deploy=failure`, so the failure moved from Flutter build logic to GitHub Pages environment/setup.
+- Handling:
+  - Tighten the workflow toward the standard Pages pattern by adding the explicit `actions/configure-pages` step before deployment.
+  - Re-push the workflow and recheck whether the repository-level Pages site becomes enabled.
+  - If `has_pages` remains false after the rerun, treat repository Settings -> Pages enablement as the remaining external blocker rather than continuing to debug Flutter output.
