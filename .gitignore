@@ -36,3 +36,5 @@ repo_reference/
 
 # Locally copied proprietary/system fonts
 app/freshsalt_surface/assets/fonts/*.ttc
+flutter/
+tmp/
