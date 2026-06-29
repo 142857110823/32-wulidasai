@@ -1880,4 +1880,15 @@ The execution repeatedly drifted away from the user's highest-priority requireme
     - Use the two user-provided Blender screenshots directly.
     - Use the existing verified runtime platform screenshot from the workspace as the platform figure source for this report package.
   - Remaining gap:
-    - A fresh same-turn live recapture of the runtime platform page is still not proven under the current Windows takeover policy.
+  - A fresh same-turn live recapture of the runtime platform page is still not proven under the current Windows takeover policy.
+
+## 2026-06-29 Flutter Web Deployment Cutover Notes
+
+- Two execution-side deviations were identified while switching the public entry from Streamlit to GitHub Pages-hosted Flutter Web
+  - `workflow.log` had grown beyond the AGENTS limit of 30 recent entries, so the file now required a rollover cleanup instead of simple append-only logging.
+  - `flutter pub get` on the local Windows Flutter 3.22.0 toolchain crashed inside Dart pub advisory-cache handling (`HostedSource._getAdvisories.readAdvisoriesFromCache` null-check failure), which is an environment/tooling issue rather than a FreshSalt source regression.
+- Impact:
+  - GitHub Pages deployment planning could continue because `flutter build web --release --base-href /32-wulidasai/` still completed successfully in the same environment.
+  - Local dependency refresh cannot be treated as a stable clean-slate verification signal until the host pub cache issue is cleared or bypassed.
+- Handling:
+  - Proceed with the smallest repository changes needed for Pages rollout, keep the pub-get crash explicitly documented, and rely on fresh build output plus browser-visible checks instead of overstating dependency-health confidence.

@@ -197,6 +197,26 @@
       }
     });
   </script>
+  <script>
+    window.setTimeout(function () {
+      var shell = document.getElementById('freshsalt-loading-shell');
+      if (!shell || shell.getAttribute('data-timeout-visible') === 'true') {
+        return;
+      }
+
+      shell.setAttribute('data-timeout-visible', 'true');
+      var note = document.createElement('p');
+      note.className = 'freshsalt-loading-text';
+      note.style.marginTop = '14px';
+      note.innerHTML =
+        '如果此页停留超过 12 秒，说明应用可能没有正常启动。请刷新页面；若部署在 GitHub Pages，请确认当前地址包含 <code>/32-wulidasai/</code>。';
+
+      var card = shell.querySelector('.freshsalt-loading-card');
+      if (card) {
+        card.appendChild(note);
+      }
+    }, 12000);
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
